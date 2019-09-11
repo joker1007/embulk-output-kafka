@@ -2,11 +2,9 @@ package org.embulk.output.kafka;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.embulk.config.Config;
@@ -17,31 +15,24 @@ import org.embulk.config.ConfigSource;
 import org.embulk.config.Task;
 import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
-import org.embulk.spi.Column;
-import org.embulk.spi.ColumnVisitor;
 import org.embulk.spi.Exec;
 import org.embulk.spi.OutputPlugin;
 import org.embulk.spi.Page;
 import org.embulk.spi.PageReader;
 import org.embulk.spi.Schema;
 import org.embulk.spi.TransactionalPageOutput;
-import org.msgpack.value.Value;
-import org.msgpack.value.ValueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.PrimitiveIterator;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 public class KafkaOutputPlugin
         implements OutputPlugin
@@ -176,118 +167,26 @@ public class KafkaOutputPlugin
         KafkaProducer<Object, ObjectNode> producer = RecordProducerFactory.getForJson(task, schema, task.getOtherProducerConfigs());
 
         PageReader pageReader = new PageReader(schema);
-
-        final Object[] key = new Object[1];
-        final String[] topicName = new String[1];
         PrimitiveIterator.OfLong randomLong = new Random().longs(1, Long.MAX_VALUE).iterator();
-
         AtomicInteger counter = new AtomicInteger(0);
 
         return new TransactionalPageOutput() {
             @Override
             public void add(Page page)
             {
-                ObjectNode jsonNode = objectMapper.createObjectNode();
                 pageReader.setPage(page);
                 while (pageReader.nextRecord()) {
-                    key[0] = null;
-                    topicName[0] = null;
+                    JsonFormatColumnVisitor columnVisitor = new JsonFormatColumnVisitor(task, pageReader, objectMapper);
 
-                    pageReader.getSchema().visitColumns(new ColumnVisitor()
-                    {
-                        @Override
-                        public void booleanColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                jsonNode.putNull(column.getName());
-                                return;
-                            }
+                    pageReader.getSchema().visitColumns(columnVisitor);
 
-                            jsonNode.put(column.getName(), pageReader.getBoolean(column));
-                        }
-
-                        @Override
-                        public void longColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                jsonNode.putNull(column.getName());
-                                return;
-                            }
-
-                            jsonNode.put(column.getName(), pageReader.getLong(column));
-                            if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
-                                key[0] = pageReader.getLong(column);
-                            }
-                        }
-
-                        @Override
-                        public void doubleColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                jsonNode.putNull(column.getName());
-                                return;
-                            }
-
-                            jsonNode.put(column.getName(), pageReader.getDouble(column));
-                            if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
-                                key[0] = pageReader.getDouble(column);
-                            }
-                        }
-
-                        @Override
-                        public void stringColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                jsonNode.putNull(column.getName());
-                                return;
-                            }
-
-                            jsonNode.put(column.getName(), pageReader.getString(column));
-                            if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
-                                key[0] = pageReader.getString(column);
-                            }
-                            if (task.getTopicColumn().isPresent() && task.getTopicColumn().get().equals(column.getName())) {
-                                topicName[0] = pageReader.getString(column);
-                            }
-                        }
-
-                        @Override
-                        public void timestampColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                jsonNode.putNull(column.getName());
-                                return;
-                            }
-
-                            jsonNode.put(column.getName(), pageReader.getTimestamp(column).toEpochMilli());
-                        }
-
-                        @Override
-                        public void jsonColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                jsonNode.putNull(column.getName());
-                                return;
-                            }
-
-                            Value value = pageReader.getJson(column);
-                            JsonNode json;
-                            try {
-                                json = objectMapper.readTree(value.toJson());
-                            }
-                            catch (IOException e) {
-                                return;
-                            }
-                            jsonNode.set(column.getName(), json);
-                        }
-                    });
-
-                    if (key[0] == null) {
-                        key[0] = randomLong.next();
+                    Object recordKey = columnVisitor.recordKey;
+                    if (recordKey == null) {
+                        recordKey = randomLong.next();
                     }
 
-                    String targetTopic = topicName[0] != null ? topicName[0] : task.getTopic();
-                    ProducerRecord<Object, ObjectNode> producerRecord = new ProducerRecord<>(targetTopic, key[0], jsonNode);
+                    String targetTopic = columnVisitor.topicName != null ? columnVisitor.topicName : task.getTopic();
+                    ProducerRecord<Object, ObjectNode> producerRecord = new ProducerRecord<>(targetTopic, recordKey, columnVisitor.jsonNode);
                     producer.send(producerRecord, (metadata, exception) -> {
                         if (exception != null) {
                             logger.error("produce error", exception);
@@ -366,191 +265,20 @@ public class KafkaOutputPlugin
             @Override
             public void add(Page page)
             {
-                GenericRecord genericRecord = new GenericData.Record(finalAvroSchema);
-
                 pageReader.setPage(page);
                 while (pageReader.nextRecord()) {
-                    key[0] = null;
-                    topicName[0] = null;
+                    AvroFormatColumnVisitor columnVisitor = new AvroFormatColumnVisitor(task, pageReader, finalAvroSchema, new GenericData.Record(finalAvroSchema));
 
-                    pageReader.getSchema().visitColumns(new ColumnVisitor()
-                    {
-                        @Override
-                        public void booleanColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                genericRecord.put(column.getName(), null);
-                                return;
-                            }
+                    pageReader.getSchema().visitColumns(columnVisitor);
 
-                            genericRecord.put(column.getName(), pageReader.getBoolean(column));
-                        }
-
-                        @Override
-                        public void longColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                genericRecord.put(column.getName(), null);
-                                return;
-                            }
-
-                            genericRecord.put(column.getName(), pageReader.getLong(column));
-                            if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
-                                key[0] = pageReader.getLong(column);
-                            }
-                        }
-
-                        @Override
-                        public void doubleColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                genericRecord.put(column.getName(), null);
-                                return;
-                            }
-
-                            genericRecord.put(column.getName(), pageReader.getDouble(column));
-                            if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
-                                key[0] = pageReader.getDouble(column);
-                            }
-                        }
-
-                        @Override
-                        public void stringColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                genericRecord.put(column.getName(), null);
-                                return;
-                            }
-
-                            genericRecord.put(column.getName(), pageReader.getString(column));
-                            if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
-                                key[0] = pageReader.getString(column);
-                            }
-                            if (task.getTopicColumn().isPresent() && task.getTopicColumn().get().equals(column.getName())) {
-                                topicName[0] = pageReader.getString(column);
-                            }
-                        }
-
-                        @Override
-                        public void timestampColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                genericRecord.put(column.getName(), null);
-                                return;
-                            }
-
-                            genericRecord.put(column.getName(), pageReader.getTimestamp(column).getInstant().toEpochMilli());
-                        }
-
-                        @Override
-                        public void jsonColumn(Column column)
-                        {
-                            if (pageReader.isNull(column)) {
-                                genericRecord.put(column.getName(), null);
-                                return;
-                            }
-
-                            Value value = pageReader.getJson(column);
-                            try {
-                                Object avroValue = convertMsgPackValueToAvroValue(finalAvroSchema.getField(column.getName()).schema(), value);
-                                genericRecord.put(column.getName(), avroValue);
-                            }
-                            catch (RuntimeException ex) {
-                                ex.printStackTrace();
-                            }
-                        }
-
-                        private Object convertMsgPackValueToAvroValue(org.apache.avro.Schema avroSchema, Value value)
-                        {
-                            switch (avroSchema.getType()) {
-                                case ARRAY:
-                                    if (value.isArrayValue()) {
-                                        return value.asArrayValue().list().stream().map(item -> {
-                                            return convertMsgPackValueToAvroValue(avroSchema.getElementType(), item);
-                                        }).filter(Objects::nonNull).collect(Collectors.toList());
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case MAP:
-                                    if (value.isMapValue()) {
-                                        Map<String, Object> map = new HashMap<>();
-                                        for (Map.Entry<Value, Value> entry : value.asMapValue().entrySet()) {
-                                            if (!entry.getValue().isNilValue()) {
-                                                map.put(entry.getKey().asStringValue().toString(), convertMsgPackValueToAvroValue(avroSchema.getValueType(), entry.getValue()));
-                                            }
-                                        }
-                                        return map;
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case RECORD:
-                                    if (value.isMapValue()) {
-                                        GenericRecord record = new GenericData.Record(avroSchema);
-                                        Map<Value, Value> valueMap = value.asMapValue().map();
-                                        for (org.apache.avro.Schema.Field field : avroSchema.getFields()) {
-                                            Optional.ofNullable(valueMap.get(ValueFactory.newString(field.name()))).ifPresent(v -> {
-                                                record.put(field.name(), convertMsgPackValueToAvroValue(field.schema(), v));
-                                            });
-                                        }
-                                        return record;
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case LONG:
-                                    if (value.isIntegerValue()) {
-                                        return value.asIntegerValue().toLong();
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case INT:
-                                    if (value.isIntegerValue()) {
-                                        return value.asIntegerValue().toInt();
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case FLOAT:
-                                    if (value.isFloatValue()) {
-                                        return value.asFloatValue().toFloat();
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case DOUBLE:
-                                    if (value.isFloatValue()) {
-                                        return value.asFloatValue().toDouble();
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case BOOLEAN:
-                                    if (value.isBooleanValue()) {
-                                        return value.asBooleanValue().getBoolean();
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case STRING:
-                                case ENUM:
-                                    if (value.isStringValue()) {
-                                        return value.asStringValue().toString();
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case NULL:
-                                    if (value.isNilValue()) {
-                                        return null;
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case UNION:
-                                    for (org.apache.avro.Schema innerSchema : avroSchema.getTypes()) {
-                                        try {
-                                            return convertMsgPackValueToAvroValue(innerSchema, value);
-                                        }
-                                        catch (RuntimeException ignored) {
-                                        }
-                                    }
-                                    throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
-                                case BYTES:
-                                case FIXED:
-                                default:
-                                    throw new RuntimeException(String.format("Unsupported avro type %s", avroSchema.getType().getName()));
-                            }
-                        }
-                    });
-
-                    if (key[0] == null) {
-                        key[0] = randomLong.next();
+                    Object recordKey = columnVisitor.recordKey;
+                    if (recordKey == null) {
+                        recordKey = randomLong.next();
                     }
 
-                    ProducerRecord<Object, Object> producerRecord = new ProducerRecord<>(task.getTopic(), key[0], genericRecord);
+                    String targetTopic = columnVisitor.topicName != null ? columnVisitor.topicName : task.getTopic();
+
+                    ProducerRecord<Object, Object> producerRecord = new ProducerRecord<>(targetTopic, recordKey, columnVisitor.genericRecord);
                     producer.send(producerRecord, (metadata, exception) -> {
                         if (exception != null) {
                             logger.error("produce error", exception);

@@ -19,6 +19,8 @@ in:
 out:
   type: kafka
   topic: "avro-complex-topic"
+  acks: all
+  retries: 3
   brokers:
     - "localhost:9092"
   schema_registry_url: "http://localhost:48081/"
