@@ -1,0 +1,25 @@
+in:
+  type: file
+  path_prefix: ./src/test/resources/in_complex
+  parser:
+    charset: UTF-8
+    newline: CRLF
+    type: csv
+    delimiter: "\t"
+    quote: "\0"
+    escape: "\0"
+    null_string: 'NULL'
+    skip_header_lines: 1
+    columns:
+    - {name: 'id:string', type: string}
+    - {name: 'int_item:long', type: long}
+    - {name: 'time:timestamp', type: timestamp, format: "%Y-%m-%dT%H:%M:%S"}
+    - {name: 'array:json', type: json}
+    - {name: 'data:json', type: json}
+out:
+  type: kafka
+  brokers:
+    - "localhost:9092"
+  other_producer_configs:
+    buffer.memory: "10000000"
+    compression.type: zstd

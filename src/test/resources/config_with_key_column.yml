@@ -18,3 +18,4 @@ out:
   type: kafka
   brokers:
     - "localhost:9092"
+  key_column_name: id:string
