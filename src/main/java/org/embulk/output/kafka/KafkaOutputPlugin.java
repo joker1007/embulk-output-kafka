@@ -81,7 +81,6 @@ public class KafkaOutputPlugin
         public Optional<String> getSchemaRegistryUrl();
 
         @Config("serialize_format")
-        @ConfigDefault("\"json\"")
         public RecordSerializeFormat getRecordSerializeFormat();
 
         @Config("avsc_file")
