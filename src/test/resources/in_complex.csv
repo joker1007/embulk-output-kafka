@@ -1,5 +1,5 @@
-id:string	int_item:long	time:timestamp	array:json	data:json
-A001	9	2018-02-01T12:15:18	[1,2,{"foo": "bar"}]	{"hoge": "fuga1", "aaa": "bbb1", "array": [1,2,3]}
-A002	0	2018-02-02T12:15:18	[1,2,{"foo": "bar"}]	{"hoge": "fuga2", "aaa": "bbb2", "array": [4,5,6]}
-A003	9	2018-02-03T12:15:18	[1,2,{"foo": "bar"}]	{"hoge": "fuga3", "aaa": "bbb3", "array": [7,8,9]}
+id	int_item	time	array	data
+A001	9	2018-02-01T12:15:18	[1,2,3]	{"hoge": "fuga1", "aaa": "bbb1", "array": [1,2,3]}
+A002	0	2018-02-02T12:15:18	[1,2,3]	{"hoge": "fuga2", "aaa": null, "array": [4,5,6]}
+A003	9	2018-02-03T12:15:18	[1,2,3]	{"hoge": "fuga3", "aaa": "bbb3", "array": [7,8,9]}
 

@@ -1,0 +1,9 @@
+{
+  "type": "record",
+  "name": "SimpleRecord",
+  "fields": [
+    {"name": "id", "type": "string"},
+    {"name": "int_item", "type": "long"},
+    {"name": "varchar_item", "type": "string"}
+  ]
+}

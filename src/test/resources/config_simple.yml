@@ -11,10 +11,12 @@ in:
     null_string: 'NULL'
     skip_header_lines: 1
     columns:
-    - {name: 'id:string', type: string}
-    - {name: 'int_item:long', type: long}
-    - {name: 'varchar_item:string', type: string}
+    - {name: 'id', type: string}
+    - {name: 'int_item', type: long}
+    - {name: 'varchar_item', type: string}
 out:
   type: kafka
+  topic: "json-topic"
+  serialize_format: json
   brokers:
     - "localhost:9092"

@@ -14,10 +14,12 @@ in:
     - {name: 'id', type: string}
     - {name: 'int_item', type: long}
     - {name: 'varchar_item', type: string}
+
 out:
   type: kafka
-  topic: "json-topic"
-  serialize_format: json
+  topic: "avro-simple-topic"
   brokers:
     - "localhost:9092"
-  key_column_name: id
+  schema_registry_url: "http://localhost:48081/"
+  serialize_format: avro_with_schema_registry
+  avsc_file: ./src/test/resources/SimpleRecord.avsc
