@@ -81,6 +81,10 @@ public class KafkaOutputPlugin
         @Config("topic")
         public String getTopic();
 
+        @Config("topic_column")
+        @ConfigDefault("null")
+        public Optional<String> getTopicColumn();
+
         @Config("schema_registry_url")
         @ConfigDefault("null")
         public Optional<String> getSchemaRegistryUrl();
@@ -174,6 +178,7 @@ public class KafkaOutputPlugin
         PageReader pageReader = new PageReader(schema);
 
         final Object[] key = new Object[1];
+        final String[] topicName = new String[1];
         PrimitiveIterator.OfLong randomLong = new Random().longs(1, Long.MAX_VALUE).iterator();
 
         AtomicInteger counter = new AtomicInteger(0);
@@ -186,6 +191,7 @@ public class KafkaOutputPlugin
                 pageReader.setPage(page);
                 while (pageReader.nextRecord()) {
                     key[0] = null;
+                    topicName[0] = null;
 
                     pageReader.getSchema().visitColumns(new ColumnVisitor()
                     {
@@ -240,6 +246,9 @@ public class KafkaOutputPlugin
                             if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
                                 key[0] = pageReader.getString(column);
                             }
+                            if (task.getTopicColumn().isPresent() && task.getTopicColumn().get().equals(column.getName())) {
+                                topicName[0] = pageReader.getString(column);
+                            }
                         }
 
                         @Override
@@ -277,7 +286,8 @@ public class KafkaOutputPlugin
                         key[0] = randomLong.next();
                     }
 
-                    ProducerRecord<Object, ObjectNode> producerRecord = new ProducerRecord<>(task.getTopic(), key[0], jsonNode);
+                    String targetTopic = topicName[0] != null ? topicName[0] : task.getTopic();
+                    ProducerRecord<Object, ObjectNode> producerRecord = new ProducerRecord<>(targetTopic, key[0], jsonNode);
                     producer.send(producerRecord, (metadata, exception) -> {
                         if (exception != null) {
                             logger.error("produce error", exception);
@@ -345,6 +355,7 @@ public class KafkaOutputPlugin
         }
 
         final Object[] key = new Object[1];
+        final String[] topicName = new String[1];
         PrimitiveIterator.OfLong randomLong = new Random().longs(1, Long.MAX_VALUE).iterator();
 
         AtomicInteger counter = new AtomicInteger(0);
@@ -360,6 +371,7 @@ public class KafkaOutputPlugin
                 pageReader.setPage(page);
                 while (pageReader.nextRecord()) {
                     key[0] = null;
+                    topicName[0] = null;
 
                     pageReader.getSchema().visitColumns(new ColumnVisitor()
                     {
@@ -383,6 +395,9 @@ public class KafkaOutputPlugin
                             }
 
                             genericRecord.put(column.getName(), pageReader.getLong(column));
+                            if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
+                                key[0] = pageReader.getLong(column);
+                            }
                         }
 
                         @Override
@@ -394,6 +409,9 @@ public class KafkaOutputPlugin
                             }
 
                             genericRecord.put(column.getName(), pageReader.getDouble(column));
+                            if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
+                                key[0] = pageReader.getDouble(column);
+                            }
                         }
 
                         @Override
@@ -405,6 +423,12 @@ public class KafkaOutputPlugin
                             }
 
                             genericRecord.put(column.getName(), pageReader.getString(column));
+                            if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
+                                key[0] = pageReader.getString(column);
+                            }
+                            if (task.getTopicColumn().isPresent() && task.getTopicColumn().get().equals(column.getName())) {
+                                topicName[0] = pageReader.getString(column);
+                            }
                         }
 
                         @Override
