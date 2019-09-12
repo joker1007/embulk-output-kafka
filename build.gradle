@@ -97,7 +97,7 @@ Gem::Specification.new do |spec|
   spec.description   = %[Dumps records to Kafka.]
   spec.email         = ["kakyoin.hierophant@gmail.com"]
   spec.licenses      = ["MIT"]
-  # TODO set this: spec.homepage      = "https://github.com/kakyoin.hierophant/embulk-output-kafka"
+  spec.homepage      = "https://github.com/joker1007/embulk-output-kafka"
 
   spec.files         = `git ls-files`.split("\n") + Dir["classpath/*.jar"]
   spec.test_files    = spec.files.grep(%r"^(test|spec)/")
