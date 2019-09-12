@@ -252,8 +252,6 @@ public class KafkaOutputPlugin
             }
         }
 
-        final Object[] key = new Object[1];
-        final String[] topicName = new String[1];
         PrimitiveIterator.OfLong randomLong = new Random().longs(1, Long.MAX_VALUE).iterator();
 
         AtomicInteger counter = new AtomicInteger(0);
