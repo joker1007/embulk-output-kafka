@@ -17,7 +17,7 @@
 - **avsc_file**: avro schema file path (string, default: `null`)
 - **avsc**: inline avro schema config (json, default: `null`)
 - **key_column_name**: use column value as record key (string, default: `null`, if this parameter is null, set random number as record key)
-- **record_batch_size**: kafka producer record batch size (integer, default: `500`)
+- **record_batch_size**: kafka producer record batch size (integer, default: `1000`)
 - **acks**: kafka producer require acks (string, default: `"1"`)
 - **retries**: kafka producer max retry count (integer, default: `1`)
 - **other_producer_configs**: other producer configs (json, default: `{}`)
