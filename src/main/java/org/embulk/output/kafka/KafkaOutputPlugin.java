@@ -115,6 +115,10 @@ public class KafkaOutputPlugin
         @Config("ignore_columns")
         @ConfigDefault("[]")
         public List<String> getIgnoreColumns();
+
+        @Config("value_subject_name_strategy")
+        @ConfigDefault("null")
+        public Optional<String> getValueSubjectNameStrategy();
     }
 
     private static ObjectMapper objectMapper = new ObjectMapper();

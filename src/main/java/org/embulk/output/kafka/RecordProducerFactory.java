@@ -95,9 +95,14 @@ class RecordProducerFactory
         KafkaAvroSerializer kafkaAvroSerializer = new KafkaAvroSerializer();
         String schemaRegistryUrl = task.getSchemaRegistryUrl().orElseThrow(() -> new ConfigException("avro_with_schema_registry format needs schema_registry_url"));
 
-        Map<String, String> avroSerializerConfigs = ImmutableMap.<String, String>builder()
-                .put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl)
-                .build();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder()
+                .put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
+
+        if (task.getValueSubjectNameStrategy().isPresent()) {
+            builder.put(AbstractKafkaAvroSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY, task.getValueSubjectNameStrategy().get());
+        }
+
+        Map<String, String> avroSerializerConfigs = builder.build();
         kafkaAvroSerializer.configure(avroSerializerConfigs, false);
 
         return new KafkaProducer<>(buildProperties(task, schema, configs), null, kafkaAvroSerializer);

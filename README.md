@@ -22,6 +22,7 @@
 - **acks**: kafka producer require acks (string, default: `"1"`)
 - **retries**: kafka producer max retry count (integer, default: `1`)
 - **other_producer_configs**: other producer configs (json, default: `{}`)
+- **value_subject_name_strategy**: Set SchemaRegistry subject name strategy (string, default: `null`, ex. `io.confluent.kafka.serializers.subject.RecordNameStrategy`)
 
 If use `avro_with_schema_registry` format, following configs are required.
 
