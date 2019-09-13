@@ -27,6 +27,10 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void booleanColumn(Column column)
     {
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             jsonNode.putNull(column.getName());
             return;
@@ -38,6 +42,10 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void longColumn(Column column)
     {
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             jsonNode.putNull(column.getName());
             return;
@@ -50,6 +58,10 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void doubleColumn(Column column)
     {
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             jsonNode.putNull(column.getName());
             return;
@@ -62,6 +74,10 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void stringColumn(Column column)
     {
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             jsonNode.putNull(column.getName());
             return;
@@ -74,6 +90,10 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void timestampColumn(Column column)
     {
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             jsonNode.putNull(column.getName());
             return;
@@ -85,6 +105,10 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void jsonColumn(Column column)
     {
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             jsonNode.putNull(column.getName());
             return;

@@ -24,3 +24,5 @@ out:
     - "localhost:9092"
   other_producer_configs:
     buffer.memory: "67108864"
+  ignore_columns:
+    - time

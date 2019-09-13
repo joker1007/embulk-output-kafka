@@ -15,6 +15,7 @@ import org.embulk.config.ConfigSource;
 import org.embulk.config.Task;
 import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
+import org.embulk.spi.ColumnConfig;
 import org.embulk.spi.Exec;
 import org.embulk.spi.OutputPlugin;
 import org.embulk.spi.Page;
@@ -110,11 +111,14 @@ public class KafkaOutputPlugin
         @Config("other_producer_configs")
         @ConfigDefault("{}")
         public Map<String, String> getOtherProducerConfigs();
+
+        @Config("ignore_columns")
+        @ConfigDefault("[]")
+        public List<String> getIgnoreColumns();
     }
 
     private static ObjectMapper objectMapper = new ObjectMapper();
     private Logger logger = LoggerFactory.getLogger(getClass());
-    private int recordLoggingCount = 1;
 
     @Override
     public ConfigDiff transaction(ConfigSource config,
@@ -168,6 +172,7 @@ public class KafkaOutputPlugin
         PageReader pageReader = new PageReader(schema);
         PrimitiveIterator.OfLong randomLong = new Random().longs(1, Long.MAX_VALUE).iterator();
         AtomicInteger counter = new AtomicInteger(0);
+        AtomicInteger recordLoggingCount = new AtomicInteger(1);
 
         return new TransactionalPageOutput() {
             @Override
@@ -194,9 +199,9 @@ public class KafkaOutputPlugin
                         logger.debug("sent record: {key: {}, value: {}}", producerRecord.key(), producerRecord.value());
 
                         int current = counter.incrementAndGet();
-                        if (current >= recordLoggingCount) {
+                        if (current >= recordLoggingCount.get()) {
                             logger.info("[task-{}] Producer sent {} records", String.format("%04d", taskIndex), current);
-                            recordLoggingCount = recordLoggingCount * 2;
+                            recordLoggingCount.set(recordLoggingCount.get() * 2);
                         }
                     });
                 }
@@ -255,6 +260,7 @@ public class KafkaOutputPlugin
         PrimitiveIterator.OfLong randomLong = new Random().longs(1, Long.MAX_VALUE).iterator();
 
         AtomicInteger counter = new AtomicInteger(0);
+        AtomicInteger recordLoggingCount = new AtomicInteger(1);
 
         final org.apache.avro.Schema finalAvroSchema = avroSchema;
         return new TransactionalPageOutput()
@@ -284,9 +290,9 @@ public class KafkaOutputPlugin
                         logger.debug("sent record: {key: {}, value: {}}", producerRecord.key(), producerRecord.value());
 
                         int current = counter.incrementAndGet();
-                        if (current >= recordLoggingCount) {
+                        if (current >= recordLoggingCount.get()) {
                             logger.info("[task-{}] Producer sent {} records", String.format("%04d", taskIndex), current);
-                            recordLoggingCount = recordLoggingCount * 2;
+                            recordLoggingCount.set(recordLoggingCount.get() * 2);
                         }
                     });
                 }

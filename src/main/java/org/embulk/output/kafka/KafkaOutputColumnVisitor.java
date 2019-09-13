@@ -32,22 +32,33 @@ public abstract class KafkaOutputColumnVisitor implements ColumnVisitor
         }
     }
 
+    boolean isIgnoreColumn(Column column)
+    {
+        return task.getIgnoreColumns().stream().anyMatch(name -> name.equals(column.getName()));
+    }
+
     @Override
     public void longColumn(Column column)
     {
-        setRecordKey(column, pageReader.getLong(column));
+        if (!pageReader.isNull(column)) {
+            setRecordKey(column, pageReader.getLong(column));
+        }
     }
 
     @Override
     public void doubleColumn(Column column)
     {
-        setRecordKey(column, pageReader.getDouble(column));
+        if (!pageReader.isNull(column)) {
+            setRecordKey(column, pageReader.getDouble(column));
+        }
     }
 
     @Override
     public void stringColumn(Column column)
     {
-        setRecordKey(column, pageReader.getString(column));
-        setTopicName(column, pageReader.getString(column));
+        if (!pageReader.isNull(column)) {
+            setRecordKey(column, pageReader.getString(column));
+            setTopicName(column, pageReader.getString(column));
+        }
     }
 }

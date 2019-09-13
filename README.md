@@ -9,14 +9,15 @@
 
 ## Configuration
 
-- **broker**: kafka broker host and port (array<string>, required)
+- **broker**: kafka broker host and port (array(string), required)
 - **topic**: target topic name (string, required)
 - **topic_column**: use column value as target topic (string, default: `null`)
 - **schema_registry_url**: Schema Registy URL that is needed for avro format (string, default: `null`)
 - **serialize_format**: use column value as target topic (enum, required, `json` or `avro_with_schema_registry`)
 - **avsc_file**: avro schema file path (string, default: `null`)
 - **avsc**: inline avro schema config (json, default: `null`)
-- **key_column_name**: use column value as record key (string, default: `null`, if this parameter is null, set random number as record key)
+- **ignore_columns**: remove columns from output  (array(string), default: `[]`)
+- **key_column_name**: use column value as record key (string, default: `null`, if this parameter is null, set random number as record key, and it can use column in `ignore_columns`)
 - **record_batch_size**: kafka producer record batch size (integer, default: `1000`)
 - **acks**: kafka producer require acks (string, default: `"1"`)
 - **retries**: kafka producer max retry count (integer, default: `1`)

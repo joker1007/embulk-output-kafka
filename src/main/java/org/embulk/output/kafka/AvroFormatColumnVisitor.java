@@ -29,6 +29,10 @@ public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void booleanColumn(Column column)
     {
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             genericRecord.put(column.getName(), null);
             return;
@@ -40,42 +44,61 @@ public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void longColumn(Column column)
     {
+        super.longColumn(column);
+
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             genericRecord.put(column.getName(), null);
             return;
         }
 
         genericRecord.put(column.getName(), pageReader.getLong(column));
-        super.longColumn(column);
     }
 
     @Override
     public void doubleColumn(Column column)
     {
+        super.doubleColumn(column);
+
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             genericRecord.put(column.getName(), null);
             return;
         }
 
         genericRecord.put(column.getName(), pageReader.getDouble(column));
-        super.doubleColumn(column);
     }
 
     @Override
     public void stringColumn(Column column)
     {
+        super.stringColumn(column);
+
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             genericRecord.put(column.getName(), null);
             return;
         }
 
         genericRecord.put(column.getName(), pageReader.getString(column));
-        super.stringColumn(column);
     }
 
     @Override
     public void timestampColumn(Column column)
     {
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             genericRecord.put(column.getName(), null);
             return;
@@ -87,6 +110,10 @@ public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void jsonColumn(Column column)
     {
+        if (isIgnoreColumn(column)) {
+            return;
+        }
+
         if (pageReader.isNull(column)) {
             genericRecord.put(column.getName(), null);
             return;
