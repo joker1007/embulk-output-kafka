@@ -18,6 +18,7 @@
 - **avsc**: inline avro schema config (json, default: `null`)
 - **ignore_columns**: remove columns from output  (array(string), default: `[]`)
 - **key_column_name**: use column value as record key (string, default: `null`, if this parameter is null, set random number as record key, and it can use column in `ignore_columns`)
+- **partition_column_name**: use column value as partition id (string, default: `null`, this value is prefer to `key_column_name`, and if partition_column value is null, use key_column for partitioning)
 - **record_batch_size**: kafka producer record batch size (integer, default: `1000`)
 - **acks**: kafka producer require acks (string, default: `"1"`)
 - **retries**: kafka producer max retry count (integer, default: `1`)
