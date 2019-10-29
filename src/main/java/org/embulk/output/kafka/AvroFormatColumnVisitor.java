@@ -17,13 +17,24 @@ import java.util.stream.Collectors;
 public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor
 {
     private Schema avroSchema;
-    public GenericRecord genericRecord;
+    private GenericRecord genericRecord;
 
-    public AvroFormatColumnVisitor(KafkaOutputPlugin.PluginTask task, PageReader pageReader, Schema avroSchema, GenericRecord genericRecord)
+    AvroFormatColumnVisitor(KafkaOutputPlugin.PluginTask task, PageReader pageReader, Schema avroSchema)
     {
         super(task, pageReader);
         this.avroSchema = avroSchema;
-        this.genericRecord = genericRecord;
+    }
+
+    GenericRecord getGenericRecord()
+    {
+        return genericRecord;
+    }
+
+    @Override
+    void reset()
+    {
+        super.reset();
+        this.genericRecord = new GenericData.Record(avroSchema);
     }
 
     @Override

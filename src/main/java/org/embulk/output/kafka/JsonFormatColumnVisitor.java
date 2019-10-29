@@ -13,14 +13,25 @@ import java.time.format.DateTimeFormatter;
 public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
 {
     private ObjectMapper objectMapper;
-    public ObjectNode jsonNode;
+    private ObjectNode jsonNode;
 
     private static DateTimeFormatter timestampFormatter = DateTimeFormatter.ISO_INSTANT;
 
-    public JsonFormatColumnVisitor(KafkaOutputPlugin.PluginTask task, PageReader pageReader, ObjectMapper objectMapper)
+    JsonFormatColumnVisitor(KafkaOutputPlugin.PluginTask task, PageReader pageReader, ObjectMapper objectMapper)
     {
         super(task, pageReader);
         this.objectMapper = objectMapper;
+    }
+
+    ObjectNode getJsonNode()
+    {
+        return jsonNode;
+    }
+
+    @Override
+    void reset()
+    {
+        super.reset();
         this.jsonNode = objectMapper.createObjectNode();
     }
 
@@ -42,6 +53,8 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void longColumn(Column column)
     {
+        super.longColumn(column);
+
         if (isIgnoreColumn(column)) {
             return;
         }
@@ -58,6 +71,8 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
     @Override
     public void doubleColumn(Column column)
     {
+        super.doubleColumn(column);
+
         if (isIgnoreColumn(column)) {
             return;
         }
@@ -68,12 +83,13 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
         }
 
         jsonNode.put(column.getName(), pageReader.getDouble(column));
-        super.doubleColumn(column);
     }
 
     @Override
     public void stringColumn(Column column)
     {
+        super.stringColumn(column);
+
         if (isIgnoreColumn(column)) {
             return;
         }
@@ -84,7 +100,6 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
         }
 
         jsonNode.put(column.getName(), pageReader.getString(column));
-        super.stringColumn(column);
     }
 
     @Override
