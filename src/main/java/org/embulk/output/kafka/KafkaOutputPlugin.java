@@ -40,6 +40,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class KafkaOutputPlugin
         implements OutputPlugin
@@ -199,8 +200,8 @@ public class KafkaOutputPlugin
 
         PageReader pageReader = new PageReader(schema);
         PrimitiveIterator.OfLong randomLong = new Random().longs(1, Long.MAX_VALUE).iterator();
-        AtomicInteger counter = new AtomicInteger(0);
-        AtomicInteger recordLoggingCount = new AtomicInteger(1);
+        AtomicLong counter = new AtomicLong(0);
+        AtomicLong recordLoggingCount = new AtomicLong(1);
 
         return new TransactionalPageOutput() {
             private JsonFormatColumnVisitor columnVisitor = new JsonFormatColumnVisitor(task, pageReader, objectMapper);
@@ -228,7 +229,7 @@ public class KafkaOutputPlugin
 
                         logger.debug("sent record: {key: {}, value: {}}", producerRecord.key(), producerRecord.value());
 
-                        int current = counter.incrementAndGet();
+                        long current = counter.incrementAndGet();
                         if (current >= recordLoggingCount.get()) {
                             logger.info("[task-{}] Producer sent {} records", String.format("%04d", taskIndex), current);
                             recordLoggingCount.set(recordLoggingCount.get() * 2);
