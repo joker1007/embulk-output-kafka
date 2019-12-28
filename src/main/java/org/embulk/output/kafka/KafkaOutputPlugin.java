@@ -290,8 +290,8 @@ public class KafkaOutputPlugin
 
         PrimitiveIterator.OfLong randomLong = new Random().longs(1, Long.MAX_VALUE).iterator();
 
-        AtomicInteger counter = new AtomicInteger(0);
-        AtomicInteger recordLoggingCount = new AtomicInteger(1);
+        AtomicLong counter = new AtomicLong(0);
+        AtomicLong recordLoggingCount = new AtomicLong(1);
 
         final org.apache.avro.Schema finalAvroSchema = avroSchema;
         return new TransactionalPageOutput()
@@ -322,7 +322,7 @@ public class KafkaOutputPlugin
 
                         logger.debug("sent record: {key: {}, value: {}}", producerRecord.key(), producerRecord.value());
 
-                        int current = counter.incrementAndGet();
+                        long current = counter.incrementAndGet();
                         if (current >= recordLoggingCount.get()) {
                             logger.info("[task-{}] Producer sent {} records", String.format("%04d", taskIndex), current);
                             recordLoggingCount.set(recordLoggingCount.get() * 2);
