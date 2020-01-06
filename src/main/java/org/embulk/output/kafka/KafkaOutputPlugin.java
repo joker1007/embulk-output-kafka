@@ -107,7 +107,7 @@ public class KafkaOutputPlugin
         public Optional<String> getPartitionColumnName();
 
         @Config("record_batch_size")
-        @ConfigDefault("1000")
+        @ConfigDefault("16384")
         public int getRecordBatchSize();
 
         @Config("acks")
