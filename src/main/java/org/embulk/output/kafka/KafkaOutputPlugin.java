@@ -39,7 +39,6 @@ import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class KafkaOutputPlugin
@@ -221,13 +220,17 @@ public class KafkaOutputPlugin
                     }
 
                     String targetTopic = columnVisitor.getTopicName() != null ? columnVisitor.getTopicName() : task.getTopic();
-                    ProducerRecord<Object, ObjectNode> producerRecord = new ProducerRecord<>(targetTopic, recordKey, columnVisitor.getJsonNode());
+                    ProducerRecord<Object, ObjectNode> producerRecord = new ProducerRecord<>(targetTopic, columnVisitor.getPartition(), recordKey, columnVisitor.getJsonNode());
                     producer.send(producerRecord, (metadata, exception) -> {
                         if (exception != null) {
                             logger.error("produce error", exception);
                         }
 
-                        logger.debug("sent record: {key: {}, value: {}}", producerRecord.key(), producerRecord.value());
+                        logger.debug("sent record: {topic: {}, key: {}, value: {}, partition: {}}",
+                                producerRecord.topic(),
+                                producerRecord.key(),
+                                producerRecord.value(),
+                                producerRecord.partition());
 
                         long current = counter.incrementAndGet();
                         if (current >= recordLoggingCount.get()) {
@@ -320,7 +323,11 @@ public class KafkaOutputPlugin
                             logger.error("produce error", exception);
                         }
 
-                        logger.debug("sent record: {key: {}, value: {}}", producerRecord.key(), producerRecord.value());
+                        logger.debug("sent record: {topic: {}, key: {}, value: {}, partition: {}}",
+                                producerRecord.topic(),
+                                producerRecord.key(),
+                                producerRecord.value(),
+                                producerRecord.partition());
 
                         long current = counter.incrementAndGet();
                         if (current >= recordLoggingCount.get()) {
