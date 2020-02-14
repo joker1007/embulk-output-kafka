@@ -4,7 +4,7 @@ import org.embulk.spi.Column;
 import org.embulk.spi.ColumnVisitor;
 import org.embulk.spi.PageReader;
 
-public abstract class KafkaOutputColumnVisitor implements ColumnVisitor
+public abstract class KafkaOutputColumnVisitor<T> implements ColumnVisitor
 {
     private KafkaOutputPlugin.PluginTask task;
     PageReader pageReader;
@@ -20,6 +20,8 @@ public abstract class KafkaOutputColumnVisitor implements ColumnVisitor
         this.pageReader = pageReader;
         this.partitionColumnName = task.getPartitionColumnName().orElse(null);
     }
+
+    public abstract T getRecord();
 
     Object getRecordKey()
     {

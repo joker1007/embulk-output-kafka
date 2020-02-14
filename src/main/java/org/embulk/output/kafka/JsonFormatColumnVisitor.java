@@ -10,7 +10,7 @@ import org.msgpack.value.Value;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 
-public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
+public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor<ObjectNode>
 {
     private ObjectMapper objectMapper;
     private ObjectNode jsonNode;
@@ -23,7 +23,8 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor
         this.objectMapper = objectMapper;
     }
 
-    ObjectNode getJsonNode()
+    @Override
+    public ObjectNode getRecord()
     {
         return jsonNode;
     }

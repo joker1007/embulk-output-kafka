@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor
+public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor<GenericRecord>
 {
     private Schema avroSchema;
     private GenericRecord genericRecord;
@@ -25,7 +25,8 @@ public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor
         this.avroSchema = avroSchema;
     }
 
-    GenericRecord getGenericRecord()
+    @Override
+    public GenericRecord getRecord()
     {
         return genericRecord;
     }

@@ -9,7 +9,6 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.embulk.config.Config;
 import org.embulk.config.ConfigDefault;
 import org.embulk.config.ConfigDiff;
@@ -20,12 +19,9 @@ import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
 import org.embulk.spi.Exec;
 import org.embulk.spi.OutputPlugin;
-import org.embulk.spi.Page;
 import org.embulk.spi.PageReader;
 import org.embulk.spi.Schema;
 import org.embulk.spi.TransactionalPageOutput;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,13 +29,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.PrimitiveIterator;
 import java.util.Properties;
-import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class KafkaOutputPlugin
         implements OutputPlugin
@@ -132,14 +125,12 @@ public class KafkaOutputPlugin
     }
 
     private static ObjectMapper objectMapper = new ObjectMapper();
-    private Logger logger = LoggerFactory.getLogger(getClass());
 
     private AdminClient getKafkaAdminClient(PluginTask task)
     {
         Properties properties = new Properties();
         properties.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, task.getBrokers());
-        AdminClient adminClient = AdminClient.create(properties);
-        return adminClient;
+        return AdminClient.create(properties);
     }
 
     @Override
@@ -189,93 +180,33 @@ public class KafkaOutputPlugin
             case AVRO_WITH_SCHEMA_REGISTRY:
                 return buildPageOutputForAvroWithSchemaRegistry(task, schema, taskIndex);
             default:
-                throw new ConfigException("Unknow serialize format");
+                throw new ConfigException("Unknown serialize format");
         }
     }
 
     private TransactionalPageOutput buildPageOutputForJson(PluginTask task, Schema schema, int taskIndex)
     {
         KafkaProducer<Object, ObjectNode> producer = RecordProducerFactory.getForJson(task, schema, task.getOtherProducerConfigs());
-
         PageReader pageReader = new PageReader(schema);
-        PrimitiveIterator.OfLong randomLong = new Random().longs(1, Long.MAX_VALUE).iterator();
-        AtomicLong counter = new AtomicLong(0);
-        AtomicLong recordLoggingCount = new AtomicLong(1);
+        KafkaOutputColumnVisitor<ObjectNode> columnVisitor = new JsonFormatColumnVisitor(task, pageReader, objectMapper);
 
-        return new TransactionalPageOutput() {
-            private JsonFormatColumnVisitor columnVisitor = new JsonFormatColumnVisitor(task, pageReader, objectMapper);
-
-            @Override
-            public void add(Page page)
-            {
-                pageReader.setPage(page);
-                while (pageReader.nextRecord()) {
-                    columnVisitor.reset();
-
-                    pageReader.getSchema().visitColumns(columnVisitor);
-
-                    Object recordKey = columnVisitor.getRecordKey();
-                    if (recordKey == null) {
-                        recordKey = randomLong.next();
-                    }
-
-                    String targetTopic = columnVisitor.getTopicName() != null ? columnVisitor.getTopicName() : task.getTopic();
-                    ProducerRecord<Object, ObjectNode> producerRecord = new ProducerRecord<>(targetTopic, columnVisitor.getPartition(), recordKey, columnVisitor.getJsonNode());
-                    producer.send(producerRecord, (metadata, exception) -> {
-                        if (exception != null) {
-                            logger.error("produce error", exception);
-                        }
-
-                        logger.debug("sent record: {topic: {}, key: {}, value: {}, partition: {}}",
-                                producerRecord.topic(),
-                                producerRecord.key(),
-                                producerRecord.value(),
-                                producerRecord.partition());
-
-                        long current = counter.incrementAndGet();
-                        if (current >= recordLoggingCount.get()) {
-                            logger.info("[task-{}] Producer sent {} records", String.format("%04d", taskIndex), current);
-                            recordLoggingCount.set(recordLoggingCount.get() * 2);
-                        }
-                    });
-                }
-            }
-
-            @Override
-            public void finish()
-            {
-                producer.flush();
-            }
-
-            @Override
-            public void close()
-            {
-                producer.close();
-            }
-
-            @Override
-            public void abort()
-            {
-                producer.flush();
-                producer.close();
-            }
-
-            @Override
-            public TaskReport commit()
-            {
-                return null;
-            }
-        };
+        return new JsonFormatTransactionalPageOutput(producer, pageReader, columnVisitor, task.getTopic(), taskIndex);
     }
 
     private TransactionalPageOutput buildPageOutputForAvroWithSchemaRegistry(PluginTask task, Schema schema, int taskIndex)
     {
         KafkaProducer<Object, Object> producer = RecordProducerFactory.getForAvroWithSchemaRegistry(task, schema, task.getOtherProducerConfigs());
-
         PageReader pageReader = new PageReader(schema);
+        org.apache.avro.Schema avroSchema = getAvroSchema(task);
+        AvroFormatColumnVisitor avroFormatColumnVisitor = new AvroFormatColumnVisitor(task, pageReader, avroSchema);
 
+        return new AvroFormatTransactionalPageOutput(producer, pageReader, avroFormatColumnVisitor, task.getTopic(), taskIndex);
+    }
+
+    private org.apache.avro.Schema getAvroSchema(PluginTask task)
+    {
         org.apache.avro.Schema avroSchema = null;
-        if (!task.getAvsc().isPresent() && !task.getAvscFile().isPresent() || task.getAvsc().isPresent() == task.getAvscFile().isPresent()) {
+        if ((!task.getAvsc().isPresent() && !task.getAvscFile().isPresent()) || (task.getAvsc().isPresent() && task.getAvscFile().isPresent())) {
             throw new ConfigException("avro_with_schema_registry format needs either one of avsc and avsc_file");
         }
         if (task.getAvsc().isPresent()) {
@@ -291,77 +222,6 @@ public class KafkaOutputPlugin
             }
         }
 
-        PrimitiveIterator.OfLong randomLong = new Random().longs(1, Long.MAX_VALUE).iterator();
-
-        AtomicLong counter = new AtomicLong(0);
-        AtomicLong recordLoggingCount = new AtomicLong(1);
-
-        final org.apache.avro.Schema finalAvroSchema = avroSchema;
-        return new TransactionalPageOutput()
-        {
-            private AvroFormatColumnVisitor columnVisitor = new AvroFormatColumnVisitor(task, pageReader, finalAvroSchema);
-
-            @Override
-            public void add(Page page)
-            {
-                pageReader.setPage(page);
-                while (pageReader.nextRecord()) {
-                    columnVisitor.reset();
-
-                    pageReader.getSchema().visitColumns(columnVisitor);
-
-                    Object recordKey = columnVisitor.getRecordKey();
-                    if (recordKey == null) {
-                        recordKey = randomLong.next();
-                    }
-
-                    String targetTopic = columnVisitor.getTopicName() != null ? columnVisitor.getTopicName() : task.getTopic();
-
-                    ProducerRecord<Object, Object> producerRecord = new ProducerRecord<>(targetTopic, columnVisitor.getPartition(), recordKey, columnVisitor.getGenericRecord());
-                    producer.send(producerRecord, (metadata, exception) -> {
-                        if (exception != null) {
-                            logger.error("produce error", exception);
-                        }
-
-                        logger.debug("sent record: {topic: {}, key: {}, value: {}, partition: {}}",
-                                producerRecord.topic(),
-                                producerRecord.key(),
-                                producerRecord.value(),
-                                producerRecord.partition());
-
-                        long current = counter.incrementAndGet();
-                        if (current >= recordLoggingCount.get()) {
-                            logger.info("[task-{}] Producer sent {} records", String.format("%04d", taskIndex), current);
-                            recordLoggingCount.set(recordLoggingCount.get() * 2);
-                        }
-                    });
-                }
-            }
-
-            @Override
-            public void finish()
-            {
-                producer.flush();
-            }
-
-            @Override
-            public void close()
-            {
-                producer.close();
-            }
-
-            @Override
-            public void abort()
-            {
-                producer.flush();
-                producer.close();
-            }
-
-            @Override
-            public TaskReport commit()
-            {
-                return null;
-            }
-        };
+        return avroSchema;
     }
 }
