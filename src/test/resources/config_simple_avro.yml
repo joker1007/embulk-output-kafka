@@ -1,32 +1,14 @@
-in:
-  type: file
-  path_prefix: ./src/test/resources/in1
-  parser:
-    charset: UTF-8
-    newline: CRLF
-    type: csv
-    delimiter: ','
-    quote: '"'
-    escape: '"'
-    null_string: 'NULL'
-    skip_header_lines: 1
-    columns:
-    - {name: 'id', type: string}
-    - {name: 'int_item', type: long}
-    - {name: 'varchar_item', type: string}
-
-out:
-  type: kafka
-  topic: "avro-simple-topic"
-  brokers:
-    - "localhost:9092"
-  schema_registry_url: "http://localhost:48081/"
-  serialize_format: avro_with_schema_registry
-  avsc:
-    type: record
-    name: SimpleRecord
-    fields: [
-      {name: "id", type: "string"},
-      {name: "int_item", type: "long"},
-      {name: "varchar_item", type: "string"},
-    ]
+type: kafka
+topic: "avro-simple-topic"
+brokers:
+  - "localhost:9092"
+schema_registry_url: "mock://embulk-output-kafka"
+serialize_format: avro_with_schema_registry
+avsc:
+  type: record
+  name: SimpleRecord
+  fields: [
+    {name: "id", type: "string"},
+    {name: "int_item", type: "long"},
+    {name: "varchar_item", type: "string"},
+  ]

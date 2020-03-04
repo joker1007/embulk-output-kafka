@@ -3,4 +3,4 @@ topic: "json-topic"
 serialize_format: json
 brokers:
   - "localhost:9092"
-key_column_name: id
+partition_column_name: int_item

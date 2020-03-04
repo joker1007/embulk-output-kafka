@@ -46,6 +46,15 @@ dependencies {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
         exclude group: "org.slf4j", module: "slf4j-api"
     }
+
+    testCompile "com.salesforce.kafka.test:kafka-junit4:3.+"
+    testCompile("org.apache.kafka:kafka_2.11:2.4.+") {
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
+//        exclude group: "com.fasterxml.jackson.dataformat", module: "jackson-dataformat-csv"
+        exclude group: "com.fasterxml.jackson.datatype", module: "jackson-datatype-jdk8"
+    }
 }
 
 task classpath(type: Copy, dependsOn: ["jar"]) {

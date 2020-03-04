@@ -1,28 +1,9 @@
-in:
-  type: file
-  path_prefix: ./src/test/resources/in_complex
-  parser:
-    charset: UTF-8
-    newline: CRLF
-    type: csv
-    delimiter: "\t"
-    quote: "\0"
-    escape: "\0"
-    null_string: 'NULL'
-    skip_header_lines: 1
-    columns:
-    - {name: 'id', type: string}
-    - {name: 'int_item', type: long}
-    - {name: 'time', type: timestamp, format: "%Y-%m-%dT%H:%M:%S"}
-    - {name: 'array', type: json}
-    - {name: 'data', type: json}
-out:
-  type: kafka
-  topic: "json-topic"
-  serialize_format: json
-  brokers:
-    - "localhost:9092"
-  other_producer_configs:
-    buffer.memory: "67108864"
-  ignore_columns:
-    - time
+type: kafka
+topic: "json-complex-topic"
+serialize_format: json
+brokers:
+  - "localhost:9092"
+other_producer_configs:
+  buffer.memory: "67108864"
+ignore_columns:
+  - time
