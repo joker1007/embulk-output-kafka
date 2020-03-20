@@ -23,20 +23,37 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
-    compile  "org.embulk:embulk-core:0.9.17"
-    provided "org.embulk:embulk-core:0.9.17"
+    compile  "org.embulk:embulk-core:0.9.22"
+    provided "org.embulk:embulk-core:0.9.22"
     // compile "YOUR_JAR_DEPENDENCY_GROUP:YOUR_JAR_DEPENDENCY_MODULE:YOUR_JAR_DEPENDENCY_VERSION"
     testCompile "junit:junit:4.12"
-    testCompile "org.embulk:embulk-test:0.9.17"
-    testCompile "org.embulk:embulk-standards:0.9.17"
+    testCompile "org.embulk:embulk-test:0.9.22"
+    testCompile "org.embulk:embulk-standards:0.9.22"
+    testCompile "org.embulk:embulk-deps-buffer:0.9.22"
 
-    compile "org.apache.kafka:kafka-clients:2.3.0"
+    compile("org.apache.kafka:kafka-clients:2.4.0") {
+        exclude group: "org.slf4j", module: "slf4j-api"
+    }
     compile("org.apache.avro:avro:1.9.0") {
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
+        exclude group: "org.slf4j", module: "slf4j-api"
     }
-    compile("io.confluent:kafka-avro-serializer:5.3.0") {
+    compile("io.confluent:kafka-avro-serializer:5.4.0") {
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
+        exclude group: "org.slf4j", module: "slf4j-api"
     }
 
-    testCompile("com.github.charithe:kafka-junit:4.1.6") {
+    testCompile "com.salesforce.kafka.test:kafka-junit4:3.+"
+    testCompile("org.apache.kafka:kafka_2.11:2.4.+") {
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
+//        exclude group: "com.fasterxml.jackson.dataformat", module: "jackson-dataformat-csv"
+        exclude group: "com.fasterxml.jackson.datatype", module: "jackson-datatype-jdk8"
     }
 }
 

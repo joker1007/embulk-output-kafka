@@ -1,4 +1,4 @@
-id,int_item,varchar_item
-A001,1,a
-A002,2,b
-A003,3,c
+id:string,int_item:long,varchar_item:string
+"A001","1","a"
+"A002","2","b"
+"A003","3","c"
