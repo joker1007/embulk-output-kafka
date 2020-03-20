@@ -1,4 +1,5 @@
 # Kafka output plugin for Embulk
+[![CircleCI](https://circleci.com/gh/joker1007/embulk-output-kafka.svg?style=svg)](https://circleci.com/gh/joker1007/embulk-output-kafka)
 
 ## Overview
 
