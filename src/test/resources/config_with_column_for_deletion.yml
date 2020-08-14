@@ -1,0 +1,7 @@
+type: kafka
+topic: "json-topic"
+serialize_format: json
+brokers:
+  - "localhost:9092"
+column_for_deletion: "_delete"
+key_column_name: id

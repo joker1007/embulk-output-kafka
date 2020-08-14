@@ -12,6 +12,10 @@ public class KafkaJsonSerializer implements Serializer<ObjectNode>
     @Override
     public byte[] serialize(String topic, ObjectNode data)
     {
+        if (data == null) {
+            return null;
+        }
+
         try {
             return objectMapper.writeValueAsBytes(data);
         }

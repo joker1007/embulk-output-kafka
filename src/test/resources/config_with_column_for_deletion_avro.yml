@@ -1,0 +1,18 @@
+type: kafka
+topic: "avro-simple-topic"
+brokers:
+  - "localhost:9092"
+schema_registry_url: "mock://embulk-output-kafka"
+serialize_format: avro_with_schema_registry
+avsc:
+  type: record
+  name: SimpleRecord
+  fields: [
+    {name: "id", type: "string"},
+    {name: "int_item", type: "long"},
+    {name: "varchar_item", type: "string"},
+  ]
+key_column_name: id
+column_for_deletion: _delete
+ignore_columns:
+  - _delete

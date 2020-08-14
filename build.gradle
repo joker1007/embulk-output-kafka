@@ -31,7 +31,7 @@ dependencies {
     testCompile "org.embulk:embulk-standards:0.9.22"
     testCompile "org.embulk:embulk-deps-buffer:0.9.22"
 
-    compile("org.apache.kafka:kafka-clients:2.4.0") {
+    compile("org.apache.kafka:kafka-clients:2.5.1") {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
     compile("org.apache.avro:avro:1.9.0") {
@@ -40,7 +40,7 @@ dependencies {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
         exclude group: "org.slf4j", module: "slf4j-api"
     }
-    compile("io.confluent:kafka-avro-serializer:5.4.0") {
+    compile("io.confluent:kafka-avro-serializer:5.5.1") {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
@@ -48,7 +48,7 @@ dependencies {
     }
 
     testCompile "com.salesforce.kafka.test:kafka-junit4:3.+"
-    testCompile("org.apache.kafka:kafka_2.11:2.4.+") {
+    testCompile("org.apache.kafka:kafka_2.12:2.5.+") {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"

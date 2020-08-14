@@ -13,6 +13,7 @@ public abstract class KafkaOutputColumnVisitor<T> implements ColumnVisitor
     private Object recordKey = null;
     private String topicName = null;
     private Integer partition = null;
+    private boolean deletion = false;
 
     KafkaOutputColumnVisitor(KafkaOutputPlugin.PluginTask task, PageReader pageReader)
     {
@@ -52,16 +53,37 @@ public abstract class KafkaOutputColumnVisitor<T> implements ColumnVisitor
         return partition;
     }
 
+    boolean isDeletion()
+    {
+        return deletion;
+    }
+
     void reset()
     {
         this.recordKey = null;
         this.topicName = null;
         this.partition = null;
+        this.deletion = false;
     }
 
     boolean isIgnoreColumn(Column column)
     {
         return task.getIgnoreColumns().stream().anyMatch(name -> name.equals(column.getName()));
+    }
+
+    boolean isColumnForDeletion(Column column)
+    {
+        return task.getColumnForDeletion().map(name -> name.equals(column.getName())).orElse(false);
+    }
+
+    @Override
+    public void booleanColumn(Column column)
+    {
+        if (!pageReader.isNull(column)) {
+            if (isColumnForDeletion(column)) {
+                deletion = pageReader.getBoolean(column);
+            }
+        }
     }
 
     @Override
