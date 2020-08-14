@@ -3,6 +3,8 @@ package org.embulk.output.kafka;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericRecord;
@@ -296,5 +299,41 @@ public class TestKafkaOutputPlugin
         assertThat(partitions, hasItem(1));
         assertThat(partitions, hasItem(2));
         assertThat(partitions, hasItem(3));
+    }
+
+    @Test
+    public void testColumnForDeletion() throws IOException
+    {
+        ConfigSource configSource = embulk.loadYamlResource("config_with_column_for_deletion.yml");
+        configSource.set("brokers", ImmutableList.of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
+        embulk.runOutput(configSource, Paths.get(Resources.getResource("in_with_deletion.csv").getPath()));
+        List<ConsumerRecord<String, String>> consumerRecords = kafkaTestUtils
+                .consumeAllRecordsFromTopic("json-topic", StringDeserializer.class,
+                        StringDeserializer.class);
+
+        assertEquals(3, consumerRecords.size());
+        HashMap<String, String> recordMap = new HashMap<>();
+        consumerRecords.forEach(record -> recordMap.put(record.key(), record.value()));
+        assertNotNull(recordMap.get("A001"));
+        assertNotNull(recordMap.get("A003"));
+        assertNull(recordMap.get("A002"));
+    }
+
+    @Test
+    public void testColumnForDeletionAvro() throws IOException
+    {
+        ConfigSource configSource = embulk.loadYamlResource("config_with_column_for_deletion_avro.yml");
+        configSource.set("brokers", ImmutableList.of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
+        embulk.runOutput(configSource, Paths.get(Resources.getResource("in_with_deletion.csv").getPath()));
+        List<ConsumerRecord<String, String>> consumerRecords = kafkaTestUtils
+                .consumeAllRecordsFromTopic("avro-simple-topic", StringDeserializer.class,
+                        StringDeserializer.class);
+
+        assertEquals(3, consumerRecords.size());
+        HashMap<String, String> recordMap = new HashMap<>();
+        consumerRecords.forEach(record -> recordMap.put(record.key(), record.value()));
+        assertNotNull(recordMap.get("A001"));
+        assertNotNull(recordMap.get("A003"));
+        assertNull(recordMap.get("A002"));
     }
 }

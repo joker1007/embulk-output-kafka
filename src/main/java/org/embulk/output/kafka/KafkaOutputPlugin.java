@@ -122,6 +122,10 @@ public class KafkaOutputPlugin
         @Config("value_subject_name_strategy")
         @ConfigDefault("null")
         public Optional<String> getValueSubjectNameStrategy();
+
+        @Config("column_for_deletion")
+        @ConfigDefault("null")
+        public Optional<String> getColumnForDeletion();
     }
 
     private static ObjectMapper objectMapper = new ObjectMapper();

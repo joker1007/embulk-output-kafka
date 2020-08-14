@@ -26,6 +26,10 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor<ObjectNode
     @Override
     public ObjectNode getRecord()
     {
+        if (isDeletion()) {
+            return null;
+        }
+
         return jsonNode;
     }
 
@@ -39,6 +43,8 @@ public class JsonFormatColumnVisitor extends KafkaOutputColumnVisitor<ObjectNode
     @Override
     public void booleanColumn(Column column)
     {
+        super.booleanColumn(column);
+
         if (isIgnoreColumn(column)) {
             return;
         }

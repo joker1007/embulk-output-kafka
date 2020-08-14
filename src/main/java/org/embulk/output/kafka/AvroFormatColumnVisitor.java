@@ -28,6 +28,10 @@ public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor<GenericRec
     @Override
     public GenericRecord getRecord()
     {
+        if (isDeletion()) {
+            return null;
+        }
+
         return genericRecord;
     }
 
@@ -41,6 +45,8 @@ public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor<GenericRec
     @Override
     public void booleanColumn(Column column)
     {
+        super.booleanColumn(column);
+
         if (isIgnoreColumn(column)) {
             return;
         }
@@ -146,9 +152,8 @@ public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor<GenericRec
         switch (avroSchema.getType()) {
             case ARRAY:
                 if (value.isArrayValue()) {
-                    return value.asArrayValue().list().stream().map(item -> {
-                        return convertMsgPackValueToAvroValue(avroSchema.getElementType(), item);
-                    }).filter(Objects::nonNull).collect(Collectors.toList());
+                    return value.asArrayValue().list().stream().map(item ->
+                            convertMsgPackValueToAvroValue(avroSchema.getElementType(), item)).filter(Objects::nonNull).collect(Collectors.toList());
                 }
                 throw new RuntimeException(String.format("Schema mismatch: avro: %s, msgpack: %s", avroSchema.getType().getName(), value.getValueType().name()));
             case MAP:
@@ -167,9 +172,8 @@ public class AvroFormatColumnVisitor extends KafkaOutputColumnVisitor<GenericRec
                     GenericRecord record = new GenericData.Record(avroSchema);
                     Map<Value, Value> valueMap = value.asMapValue().map();
                     for (org.apache.avro.Schema.Field field : avroSchema.getFields()) {
-                        Optional.ofNullable(valueMap.get(ValueFactory.newString(field.name()))).ifPresent(v -> {
-                            record.put(field.name(), convertMsgPackValueToAvroValue(field.schema(), v));
-                        });
+                        Optional.ofNullable(valueMap.get(ValueFactory.newString(field.name()))).ifPresent(v ->
+                                record.put(field.name(), convertMsgPackValueToAvroValue(field.schema(), v)));
                     }
                     return record;
                 }
