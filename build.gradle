@@ -28,7 +28,7 @@ dependencies {
     // compile "YOUR_JAR_DEPENDENCY_GROUP:YOUR_JAR_DEPENDENCY_MODULE:YOUR_JAR_DEPENDENCY_VERSION"
     testCompile "junit:junit:4.13"
     testCompile "org.embulk:embulk-test:0.9.22"
-    testCompile "org.embulk:embulk-standards:0.9.22"
+    testCompile "org.embulk:embulk-standards:0.10.10"
     testCompile "org.embulk:embulk-deps-buffer:0.9.22"
 
     compile("org.apache.kafka:kafka-clients:2.5.1") {
