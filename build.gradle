@@ -31,7 +31,7 @@ dependencies {
     testCompile "org.embulk:embulk-standards:0.9.22"
     testCompile "org.embulk:embulk-deps-buffer:0.9.22"
 
-    compile("org.apache.kafka:kafka-clients:2.5.1") {
+    compile("org.apache.kafka:kafka-clients:5.3.1-ce") {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
     compile("org.apache.avro:avro:1.9.0") {
