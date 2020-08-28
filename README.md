@@ -30,7 +30,9 @@
 If use `avro_with_schema_registry` format, following configs are required.
 
 - **schema_registry_url**
-- **avsc** or **avsc_file**
+
+If avsc and avsc_file are null, embulk-output-kafka fetch a schema from schema registry.
+But currently, embulk-output-kafka supports only TopicNameStrategy.
 
 ## Example
 

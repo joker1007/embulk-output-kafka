@@ -12,7 +12,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
 import com.salesforce.kafka.test.KafkaTestUtils;
 import com.salesforce.kafka.test.junit4.SharedKafkaTestResource;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.testutil.MockSchemaRegistry;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import java.io.IOException;
@@ -168,6 +171,53 @@ public class TestKafkaOutputPlugin
         List<String> varcharItems = genericRecords.stream()
             .map(r -> String.valueOf(r.get("varchar_item")))
             .collect(Collectors.toList());
+
+        assertThat(ids, hasItem("A001"));
+        assertThat(ids, hasItem("A002"));
+        assertThat(ids, hasItem("A003"));
+        assertThat(intItems, hasItem(1L));
+        assertThat(intItems, hasItem(2L));
+        assertThat(intItems, hasItem(3L));
+        assertThat(varcharItems, hasItem("a"));
+        assertThat(varcharItems, hasItem("b"));
+        assertThat(varcharItems, hasItem("c"));
+    }
+
+    @Test
+    public void testSimpleAvroSchemaFromRegistry() throws IOException, RestClientException
+    {
+        ConfigSource configSource = embulk.loadYamlResource("config_simple_avro.yml");
+        Object avsc = configSource.get(Object.class, "avsc");
+        String avscString = objectMapper.writeValueAsString(avsc);
+        configSource.set("avsc", null);
+        ParsedSchema parsedSchema = new AvroSchema(avscString);
+        MockSchemaRegistry.getClientForScope("embulk-output-kafka")
+                .register("avro-simple-topic-value", parsedSchema);
+        configSource.set("brokers", ImmutableList
+                .of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
+
+        embulk.runOutput(configSource, Paths.get(Resources.getResource("in1.csv").getPath()));
+
+        SchemaRegistryClient schemaRegistryClient = MockSchemaRegistry
+                .getClientForScope("embulk-output-kafka");
+        KafkaAvroDeserializer kafkaAvroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
+
+        List<ConsumerRecord<byte[], byte[]>> consumerRecords = kafkaTestUtils
+                .consumeAllRecordsFromTopic("avro-simple-topic");
+
+        assertEquals(3, consumerRecords.size());
+        List<GenericRecord> genericRecords = consumerRecords.stream().map(r -> (GenericRecord) kafkaAvroDeserializer
+                .deserialize("avro-simple-topic", r.value())).collect(Collectors.toList());
+
+        List<String> ids = genericRecords.stream()
+                .map(r -> String.valueOf(r.get("id")))
+                .collect(Collectors.toList());
+        List<Long> intItems = genericRecords.stream()
+                .map(r -> (Long) r.get("int_item"))
+                .collect(Collectors.toList());
+        List<String> varcharItems = genericRecords.stream()
+                .map(r -> String.valueOf(r.get("varchar_item")))
+                .collect(Collectors.toList());
 
         assertThat(ids, hasItem("A001"));
         assertThat(ids, hasItem("A002"));
