@@ -5,6 +5,12 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.testutil.MockSchemaRegistry;
+import io.confluent.kafka.serializers.subject.TopicNameStrategy;
+import io.confluent.kafka.serializers.subject.strategy.SubjectNameStrategy;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
@@ -130,6 +136,8 @@ public class KafkaOutputPlugin
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 
+    private static final int SCHEMA_REGISTRY_IDENTITY_MAP_CAPACITY = 1000;
+
     private AdminClient getKafkaAdminClient(PluginTask task)
     {
         Properties properties = new Properties();
@@ -210,15 +218,22 @@ public class KafkaOutputPlugin
     private org.apache.avro.Schema getAvroSchema(PluginTask task)
     {
         org.apache.avro.Schema avroSchema = null;
-        if ((!task.getAvsc().isPresent() && !task.getAvscFile().isPresent()) || (task.getAvsc().isPresent() && task.getAvscFile().isPresent())) {
+        if (!task.getSchemaRegistryUrl().isPresent()) {
+            throw new ConfigException("avro_with_schema_registry format needs schema_registry_url");
+        }
+
+        if (task.getAvsc().isPresent() && task.getAvscFile().isPresent()) {
             throw new ConfigException("avro_with_schema_registry format needs either one of avsc and avsc_file");
         }
+
         if (task.getAvsc().isPresent()) {
             avroSchema = new org.apache.avro.Schema.Parser().parse(task.getAvsc().get().toString());
+            return avroSchema;
         }
         if (task.getAvscFile().isPresent()) {
             try {
                 avroSchema = new org.apache.avro.Schema.Parser().parse(task.getAvscFile().get());
+                return avroSchema;
             }
             catch (IOException e) {
                 e.printStackTrace();
@@ -226,6 +241,28 @@ public class KafkaOutputPlugin
             }
         }
 
-        return avroSchema;
+        SchemaRegistryClient schemaRegistryClient = getSchemaRegistryClient(task.getSchemaRegistryUrl().get());
+        SubjectNameStrategy subjectNameStrategy = new TopicNameStrategy();
+        String subjectName = subjectNameStrategy.subjectName(task.getTopic(), false, null);
+        try {
+            String schema = schemaRegistryClient.getLatestSchemaMetadata(subjectName).getSchema();
+            avroSchema = new org.apache.avro.Schema.Parser().parse(schema);
+            return avroSchema;
+        }
+        catch (IOException | RestClientException e) {
+            throw new ConfigException("cannot fetch latest schema from schema registry.", e);
+        }
+    }
+
+    private static final String MOCK_SCHEMA_REGISTRY_PREFIX = "mock://";
+    private SchemaRegistryClient getSchemaRegistryClient(String url)
+    {
+        if (url.startsWith(MOCK_SCHEMA_REGISTRY_PREFIX)) {
+            String mockScope = url.substring(MOCK_SCHEMA_REGISTRY_PREFIX.length());
+            return MockSchemaRegistry.getClientForScope(mockScope);
+        }
+        else {
+            return new CachedSchemaRegistryClient(url, SCHEMA_REGISTRY_IDENTITY_MAP_CAPACITY);
+        }
     }
 }
