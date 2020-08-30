@@ -41,7 +41,7 @@ public class TestKafkaOutputPlugin
 {
     @ClassRule
     public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource()
-        .withBrokers(3);
+        .withBrokers(1);
 
     @Rule
     public TestingEmbulk embulk = TestingEmbulk.builder()
