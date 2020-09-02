@@ -97,6 +97,10 @@ public class KafkaOutputPlugin
         @ConfigDefault("null")
         public Optional<ObjectNode> getAvsc();
 
+        @Config("subject_name")
+        @ConfigDefault("null")
+        public Optional<String> getSubjectName();
+
         @Config("key_column_name")
         @ConfigDefault("null")
         public Optional<String> getKeyColumnName();
@@ -242,8 +246,10 @@ public class KafkaOutputPlugin
         }
 
         SchemaRegistryClient schemaRegistryClient = getSchemaRegistryClient(task.getSchemaRegistryUrl().get());
-        SubjectNameStrategy subjectNameStrategy = new TopicNameStrategy();
-        String subjectName = subjectNameStrategy.subjectName(task.getTopic(), false, null);
+        String subjectName = task.getSubjectName().orElseGet(() -> {
+            SubjectNameStrategy subjectNameStrategy = new TopicNameStrategy();
+            return subjectNameStrategy.subjectName(task.getTopic(), false, null);
+        });
         try {
             String schema = schemaRegistryClient.getLatestSchemaMetadata(subjectName).getSchema();
             avroSchema = new org.apache.avro.Schema.Parser().parse(schema);
