@@ -17,6 +17,7 @@
 - **serialize_format**: use column value as target topic (enum, required, `json` or `avro_with_schema_registry`)
 - **avsc_file**: avro schema file path (string, default: `null`)
 - **avsc**: inline avro schema config (json, default: `null`)
+- **subject_name**: subject name for schema_registry (string, default: `null`)
 - **ignore_columns**: remove columns from output  (array(string), default: `[]`)
 - **key_column_name**: use column value as record key (string, default: `null`, if this parameter is null, set random number as record key, and it can use column in `ignore_columns`)
 - **partition_column_name**: use column value as partition id (string, default: `null`, this value is prefer to `key_column_name`, and if partition_column value is null, use key_column for partitioning)
@@ -33,6 +34,7 @@ If use `avro_with_schema_registry` format, following configs are required.
 
 If avsc and avsc_file are null, embulk-output-kafka fetch a schema from schema registry.
 But currently, embulk-output-kafka supports only TopicNameStrategy.
+If you want to use another subject name, use `subject_name` parameter.
 
 ## Example
 
