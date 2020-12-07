@@ -27,7 +27,7 @@ dependencies {
 
     testCompile "junit:junit:4.13.1"
     testCompile "org.embulk:embulk-test:0.9.22"
-    testCompile "org.embulk:embulk-standards:0.9.22"
+    testCompile "org.embulk:embulk-standards:0.10.23"
     testCompile "org.embulk:embulk-deps-buffer:0.9.22"
 
     compile("org.apache.kafka:kafka-clients:2.5.1") {
