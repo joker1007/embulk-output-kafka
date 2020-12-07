@@ -39,7 +39,7 @@ dependencies {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
         exclude group: "org.slf4j", module: "slf4j-api"
     }
-    compile("io.confluent:kafka-avro-serializer:5.5.1") {
+    compile("io.confluent:kafka-avro-serializer:6.0.1") {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
