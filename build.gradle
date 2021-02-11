@@ -16,7 +16,7 @@ repositories {
 }
 
 group = "org.embulk.output.kafka"
-version = "0.1.9"
+version = "0.2.0"
 description = "Embulk output plugin for Apache Kafka"
 
 sourceCompatibility = 1.8
