@@ -1,11 +1,5 @@
 package org.embulk.output.kafka;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -18,6 +12,21 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.testutil.MockSchemaRegistry;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.embulk.config.ConfigSource;
+import org.embulk.input.file.LocalFileInputPlugin;
+import org.embulk.parser.csv.CsvParserPlugin;
+import org.embulk.spi.FileInputPlugin;
+import org.embulk.spi.OutputPlugin;
+import org.embulk.spi.ParserPlugin;
+import org.embulk.test.TestingEmbulk;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -25,46 +34,45 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.embulk.config.ConfigSource;
-import org.embulk.spi.OutputPlugin;
-import org.embulk.test.TestingEmbulk;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class TestKafkaOutputPlugin
 {
-    @ClassRule
-    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource()
-        .withBrokers(1);
+    @Rule
+    public final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource()
+            .withBrokers(1);
 
     @Rule
     public TestingEmbulk embulk = TestingEmbulk.builder()
+            .registerPlugin(FileInputPlugin.class, "file", LocalFileInputPlugin.class)
+            .registerPlugin(ParserPlugin.class, "csv", CsvParserPlugin.class)
             .registerPlugin(OutputPlugin.class, "kafka", KafkaOutputPlugin.class)
             .build();
 
     private KafkaTestUtils kafkaTestUtils;
-    private final static ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Before
-    public void setUp() {
-        kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-        kafkaTestUtils.createTopic("json-topic", 8, (short) 1);
-        kafkaTestUtils.createTopic("json-complex-topic", 8, (short) 1);
-        kafkaTestUtils.createTopic("avro-simple-topic", 8, (short) 1);
-        kafkaTestUtils.createTopic("avro-complex-topic", 8, (short) 1);
+    public void setUp()
+    {
+            kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
+            kafkaTestUtils.createTopic("json-topic", 8, (short) 1);
+            kafkaTestUtils.createTopic("json-complex-topic", 8, (short) 1);
+            kafkaTestUtils.createTopic("avro-simple-topic", 8, (short) 1);
+            kafkaTestUtils.createTopic("avro-complex-topic", 8, (short) 1);
     }
 
     @After
-    public void tearDown() {
-        kafkaTestUtils.getAdminClient().deleteTopics(ImmutableList.of(
-            "json-topic", "json-complex-topic", "avro-simple-topic", "avro-complex-topic"
-        ));
+    public void tearDown()
+    {
+            kafkaTestUtils.getAdminClient().deleteTopics(ImmutableList.of(
+                    "json-topic", "json-complex-topic", "avro-simple-topic", "avro-complex-topic"
+            ));
     }
 
     @Test
@@ -74,8 +82,8 @@ public class TestKafkaOutputPlugin
         configSource.set("brokers", ImmutableList.of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
         embulk.runOutput(configSource, Paths.get(Resources.getResource("in1.csv").getPath()));
         List<ConsumerRecord<String, String>> consumerRecords = kafkaTestUtils
-            .consumeAllRecordsFromTopic("json-topic", StringDeserializer.class,
-                StringDeserializer.class);
+                .consumeAllRecordsFromTopic("json-topic", StringDeserializer.class,
+                        StringDeserializer.class);
 
         assertEquals(3, consumerRecords.size());
         List<JsonNode> deserializedRecords = new ArrayList<>();
@@ -83,14 +91,14 @@ public class TestKafkaOutputPlugin
             deserializedRecords.add(objectMapper.readTree(record.value()));
         }
         List<String> ids = deserializedRecords.stream()
-            .map(r -> r.get("id").asText())
-            .collect(Collectors.toList());
+                .map(r -> r.get("id").asText())
+                .collect(Collectors.toList());
         List<Integer> intItems = deserializedRecords.stream()
-            .map(r -> r.get("int_item").asInt())
-            .collect(Collectors.toList());
+                .map(r -> r.get("int_item").asInt())
+                .collect(Collectors.toList());
         List<String> varcharItems = deserializedRecords.stream()
-            .map(r -> r.get("varchar_item").asText())
-            .collect(Collectors.toList());
+                .map(r -> r.get("varchar_item").asText())
+                .collect(Collectors.toList());
 
         assertThat(ids, hasItem("A001"));
         assertThat(ids, hasItem("A002"));
@@ -111,8 +119,8 @@ public class TestKafkaOutputPlugin
 
         embulk.runOutput(configSource, Paths.get(Resources.getResource("in_complex.csv").getPath()));
         List<ConsumerRecord<String, String>> consumerRecords = kafkaTestUtils
-            .consumeAllRecordsFromTopic("json-complex-topic", StringDeserializer.class,
-                StringDeserializer.class);
+                .consumeAllRecordsFromTopic("json-complex-topic", StringDeserializer.class,
+                        StringDeserializer.class);
 
         assertEquals(3, consumerRecords.size());
         List<JsonNode> deserializedRecords = new ArrayList<>();
@@ -120,18 +128,18 @@ public class TestKafkaOutputPlugin
             deserializedRecords.add(objectMapper.readTree(record.value()));
         }
         List<String> ids = deserializedRecords.stream()
-            .map(r -> r.get("id").asText())
-            .collect(Collectors.toList());
+                .map(r -> r.get("id").asText())
+                .collect(Collectors.toList());
         List<Integer> intItems = deserializedRecords.stream()
-            .map(r -> r.get("int_item").asInt())
-            .collect(Collectors.toList());
+                .map(r -> r.get("int_item").asInt())
+                .collect(Collectors.toList());
         List<List<Integer>> arrayItems = deserializedRecords.stream()
-            .map(r -> ImmutableList.of(
-                r.get("array").get(0).asInt(),
-                r.get("array").get(1).asInt(),
-                r.get("array").get(2).asInt()
-            ))
-            .collect(Collectors.toList());
+                .map(r -> ImmutableList.of(
+                        r.get("array").get(0).asInt(),
+                        r.get("array").get(1).asInt(),
+                        r.get("array").get(2).asInt()
+                ))
+                .collect(Collectors.toList());
 
         assertThat(ids, hasItem("A001"));
         assertThat(ids, hasItem("A002"));
@@ -144,33 +152,34 @@ public class TestKafkaOutputPlugin
     }
 
     @Test
-    public void testSimpleAvro() throws IOException {
+    public void testSimpleAvro() throws IOException
+    {
         ConfigSource configSource = embulk.loadYamlResource("config_simple_avro.yml");
         configSource.set("brokers", ImmutableList
-            .of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
+                .of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
 
         embulk.runOutput(configSource, Paths.get(Resources.getResource("in1.csv").getPath()));
 
         SchemaRegistryClient schemaRegistryClient = MockSchemaRegistry
-            .getClientForScope("embulk-output-kafka");
+                .getClientForScope("embulk-output-kafka");
         KafkaAvroDeserializer kafkaAvroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
 
         List<ConsumerRecord<byte[], byte[]>> consumerRecords = kafkaTestUtils
-            .consumeAllRecordsFromTopic("avro-simple-topic");
+                .consumeAllRecordsFromTopic("avro-simple-topic");
 
         assertEquals(3, consumerRecords.size());
         List<GenericRecord> genericRecords = consumerRecords.stream().map(r -> (GenericRecord) kafkaAvroDeserializer
-            .deserialize("avro-simple-topic", r.value())).collect(Collectors.toList());
+                .deserialize("avro-simple-topic", r.value())).collect(Collectors.toList());
 
         List<String> ids = genericRecords.stream()
-            .map(r -> String.valueOf(r.get("id")))
-            .collect(Collectors.toList());
+                .map(r -> String.valueOf(r.get("id")))
+                .collect(Collectors.toList());
         List<Long> intItems = genericRecords.stream()
-            .map(r -> (Long) r.get("int_item"))
-            .collect(Collectors.toList());
+                .map(r -> (Long) r.get("int_item"))
+                .collect(Collectors.toList());
         List<String> varcharItems = genericRecords.stream()
-            .map(r -> String.valueOf(r.get("varchar_item")))
-            .collect(Collectors.toList());
+                .map(r -> String.valueOf(r.get("varchar_item")))
+                .collect(Collectors.toList());
 
         assertThat(ids, hasItem("A001"));
         assertThat(ids, hasItem("A002"));
@@ -231,33 +240,34 @@ public class TestKafkaOutputPlugin
     }
 
     @Test
-    public void testSimpleAvroAvscFile() throws IOException {
+    public void testSimpleAvroAvscFile() throws IOException
+    {
         ConfigSource configSource = embulk.loadYamlResource("config_simple_avro_avsc_file.yml");
         configSource.set("brokers", ImmutableList
-            .of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
+                .of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
 
         embulk.runOutput(configSource, Paths.get(Resources.getResource("in1.csv").getPath()));
 
         SchemaRegistryClient schemaRegistryClient = MockSchemaRegistry
-            .getClientForScope("embulk-output-kafka");
+                .getClientForScope("embulk-output-kafka");
         KafkaAvroDeserializer kafkaAvroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
 
         List<ConsumerRecord<byte[], byte[]>> consumerRecords = kafkaTestUtils
-            .consumeAllRecordsFromTopic("avro-simple-topic");
+                .consumeAllRecordsFromTopic("avro-simple-topic");
 
         assertEquals(3, consumerRecords.size());
         List<GenericRecord> genericRecords = consumerRecords.stream().map(r -> (GenericRecord) kafkaAvroDeserializer
-            .deserialize("avro-simple-topic", r.value())).collect(Collectors.toList());
+                .deserialize("avro-simple-topic", r.value())).collect(Collectors.toList());
 
         List<String> ids = genericRecords.stream()
-            .map(r -> String.valueOf(r.get("id")))
-            .collect(Collectors.toList());
+                .map(r -> String.valueOf(r.get("id")))
+                .collect(Collectors.toList());
         List<Long> intItems = genericRecords.stream()
-            .map(r -> (Long) r.get("int_item"))
-            .collect(Collectors.toList());
+                .map(r -> (Long) r.get("int_item"))
+                .collect(Collectors.toList());
         List<String> varcharItems = genericRecords.stream()
-            .map(r -> String.valueOf(r.get("varchar_item")))
-            .collect(Collectors.toList());
+                .map(r -> String.valueOf(r.get("varchar_item")))
+                .collect(Collectors.toList());
 
         assertThat(ids, hasItem("A001"));
         assertThat(ids, hasItem("A002"));
@@ -271,33 +281,34 @@ public class TestKafkaOutputPlugin
     }
 
     @Test
-    public void testSimpleAvroComplex() throws IOException {
+    public void testSimpleAvroComplex() throws IOException
+    {
         ConfigSource configSource = embulk.loadYamlResource("config_complex_avro.yml");
         configSource.set("brokers", ImmutableList
-            .of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
+                .of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
 
         embulk.runOutput(configSource, Paths.get(Resources.getResource("in_complex.csv").getPath()));
 
         SchemaRegistryClient schemaRegistryClient = MockSchemaRegistry
-            .getClientForScope("embulk-output-kafka");
+                .getClientForScope("embulk-output-kafka");
         KafkaAvroDeserializer kafkaAvroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
 
         List<ConsumerRecord<byte[], byte[]>> consumerRecords = kafkaTestUtils
-            .consumeAllRecordsFromTopic("avro-complex-topic");
+                .consumeAllRecordsFromTopic("avro-complex-topic");
 
         assertEquals(3, consumerRecords.size());
         List<GenericRecord> genericRecords = consumerRecords.stream().map(r -> (GenericRecord) kafkaAvroDeserializer
-            .deserialize("avro-complex-topic", r.value())).collect(Collectors.toList());
+                .deserialize("avro-complex-topic", r.value())).collect(Collectors.toList());
 
         List<String> ids = genericRecords.stream()
-            .map(r -> String.valueOf(r.get("id")))
-            .collect(Collectors.toList());
+                .map(r -> String.valueOf(r.get("id")))
+                .collect(Collectors.toList());
         List<Long> intItems = genericRecords.stream()
-            .map(r -> (Long) r.get("int_item"))
-            .collect(Collectors.toList());
+                .map(r -> (Long) r.get("int_item"))
+                .collect(Collectors.toList());
         List<Instant> timeItems = genericRecords.stream()
-            .map(r -> Instant.ofEpochMilli((long) r.get("time")))
-            .collect(Collectors.toList());
+                .map(r -> Instant.ofEpochMilli((long) r.get("time")))
+                .collect(Collectors.toList());
 
         assertThat(ids, hasItem("A001"));
         assertThat(ids, hasItem("A002"));
@@ -316,13 +327,13 @@ public class TestKafkaOutputPlugin
         configSource.set("brokers", ImmutableList.of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
         embulk.runOutput(configSource, Paths.get(Resources.getResource("in1.csv").getPath()));
         List<ConsumerRecord<String, String>> consumerRecords = kafkaTestUtils
-            .consumeAllRecordsFromTopic("json-topic", StringDeserializer.class,
-                StringDeserializer.class);
+                .consumeAllRecordsFromTopic("json-topic", StringDeserializer.class,
+                        StringDeserializer.class);
 
         assertEquals(3, consumerRecords.size());
         List<String> keys = new ArrayList<>();
         for (ConsumerRecord<String, String> record : consumerRecords) {
-          keys.add(record.key());
+            keys.add(record.key());
         }
 
         assertThat(keys, hasItem("A001"));
@@ -337,8 +348,8 @@ public class TestKafkaOutputPlugin
         configSource.set("brokers", ImmutableList.of(sharedKafkaTestResource.getKafkaBrokers().getBrokerById(1).getConnectString()));
         embulk.runOutput(configSource, Paths.get(Resources.getResource("in1.csv").getPath()));
         List<ConsumerRecord<String, String>> consumerRecords = kafkaTestUtils
-            .consumeAllRecordsFromTopic("json-topic", StringDeserializer.class,
-                StringDeserializer.class);
+                .consumeAllRecordsFromTopic("json-topic", StringDeserializer.class,
+                        StringDeserializer.class);
 
         assertEquals(3, consumerRecords.size());
         List<Integer> partitions = new ArrayList<>();

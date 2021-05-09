@@ -1,9 +1,9 @@
 package org.embulk.output.kafka;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import java.util.HashMap;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.DoubleSerializer;
@@ -95,14 +95,13 @@ class RecordProducerFactory
         KafkaAvroSerializer kafkaAvroSerializer = new KafkaAvroSerializer();
         String schemaRegistryUrl = task.getSchemaRegistryUrl().orElseThrow(() -> new ConfigException("avro_with_schema_registry format needs schema_registry_url"));
 
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder()
-                .put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
+        Map<String, String> avroSerializerConfigs = new HashMap<>();
+        avroSerializerConfigs.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
 
         if (task.getValueSubjectNameStrategy().isPresent()) {
-            builder.put(AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY, task.getValueSubjectNameStrategy().get());
+            avroSerializerConfigs.put(AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY, task.getValueSubjectNameStrategy().get());
         }
 
-        Map<String, String> avroSerializerConfigs = builder.build();
         kafkaAvroSerializer.configure(avroSerializerConfigs, false);
 
         return new KafkaProducer<>(buildProperties(task, schema, configs), null, kafkaAvroSerializer);

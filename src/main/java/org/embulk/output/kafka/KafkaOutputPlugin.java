@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -15,22 +14,25 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.embulk.config.Config;
-import org.embulk.config.ConfigDefault;
 import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigException;
 import org.embulk.config.ConfigSource;
-import org.embulk.config.Task;
 import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
-import org.embulk.spi.Exec;
 import org.embulk.spi.OutputPlugin;
 import org.embulk.spi.PageReader;
 import org.embulk.spi.Schema;
 import org.embulk.spi.TransactionalPageOutput;
+import org.embulk.util.config.Config;
+import org.embulk.util.config.ConfigDefault;
+import org.embulk.util.config.ConfigMapper;
+import org.embulk.util.config.ConfigMapperFactory;
+import org.embulk.util.config.Task;
+import org.embulk.util.config.TaskMapper;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -138,6 +140,9 @@ public class KafkaOutputPlugin
         public Optional<String> getColumnForDeletion();
     }
 
+    private static final ConfigMapperFactory CONFIG_MAPPER_FACTORY = ConfigMapperFactory.builder()
+        .addDefaultModules().build();
+
     private static ObjectMapper objectMapper = new ObjectMapper();
 
     private static final int SCHEMA_REGISTRY_IDENTITY_MAP_CAPACITY = 1000;
@@ -154,9 +159,12 @@ public class KafkaOutputPlugin
             Schema schema, int taskCount,
             Control control)
     {
-        PluginTask task = config.loadConfig(PluginTask.class);
+        final ConfigMapper configMapper = CONFIG_MAPPER_FACTORY.createConfigMapper();
+        final PluginTask task = configMapper.map(config, PluginTask.class);
         AdminClient adminClient = getKafkaAdminClient(task);
-        DescribeTopicsResult result = adminClient.describeTopics(ImmutableList.of(task.getTopic()));
+        List<String> topics = new ArrayList<>();
+        topics.add(task.getTopic());
+        DescribeTopicsResult result = adminClient.describeTopics(topics);
         try {
             if (result.all().get(30, TimeUnit.SECONDS).size() == 0) {
                 throw new RuntimeException("target topic is not found");
@@ -166,8 +174,8 @@ public class KafkaOutputPlugin
             throw new RuntimeException("failed to connect kafka brokers");
         }
 
-        control.run(task.dump());
-        return Exec.newConfigDiff();
+        control.run(task.toTaskSource());
+        return CONFIG_MAPPER_FACTORY.newConfigDiff();
     }
 
     @Override
@@ -188,7 +196,8 @@ public class KafkaOutputPlugin
     @Override
     public TransactionalPageOutput open(TaskSource taskSource, Schema schema, int taskIndex)
     {
-        PluginTask task = taskSource.loadTask(PluginTask.class);
+        final TaskMapper taskMapper = CONFIG_MAPPER_FACTORY.createTaskMapper();
+        PluginTask task = taskMapper.map(taskSource, PluginTask.class);
 
         switch (task.getRecordSerializeFormat()) {
             case JSON:
@@ -221,7 +230,7 @@ public class KafkaOutputPlugin
 
     private org.apache.avro.Schema getAvroSchema(PluginTask task)
     {
-        org.apache.avro.Schema avroSchema = null;
+        org.apache.avro.Schema avroSchema;
         if (!task.getSchemaRegistryUrl().isPresent()) {
             throw new ConfigException("avro_with_schema_registry format needs schema_registry_url");
         }
