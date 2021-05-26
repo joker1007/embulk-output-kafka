@@ -107,6 +107,10 @@ public class KafkaOutputPlugin
         @ConfigDefault("null")
         public Optional<String> getKeyColumnName();
 
+        @Config("treat_producer_exception_as_error")
+        @ConfigDefault("false")
+        public boolean getTreatProducerExceptionAsError();
+
         @Config("partition_column_name")
         @ConfigDefault("null")
         public Optional<String> getPartitionColumnName();
@@ -215,7 +219,7 @@ public class KafkaOutputPlugin
         PageReader pageReader = new PageReader(schema);
         KafkaOutputColumnVisitor<ObjectNode> columnVisitor = new JsonFormatColumnVisitor(task, pageReader, objectMapper);
 
-        return new JsonFormatTransactionalPageOutput(producer, pageReader, columnVisitor, task.getTopic(), taskIndex);
+        return new JsonFormatTransactionalPageOutput(producer, pageReader, columnVisitor, task.getTopic(), taskIndex, task.getTreatProducerExceptionAsError());
     }
 
     private TransactionalPageOutput buildPageOutputForAvroWithSchemaRegistry(PluginTask task, Schema schema, int taskIndex)
@@ -225,7 +229,7 @@ public class KafkaOutputPlugin
         org.apache.avro.Schema avroSchema = getAvroSchema(task);
         AvroFormatColumnVisitor avroFormatColumnVisitor = new AvroFormatColumnVisitor(task, pageReader, avroSchema);
 
-        return new AvroFormatTransactionalPageOutput(producer, pageReader, avroFormatColumnVisitor, task.getTopic(), taskIndex);
+        return new AvroFormatTransactionalPageOutput(producer, pageReader, avroFormatColumnVisitor, task.getTopic(), taskIndex, task.getTreatProducerExceptionAsError());
     }
 
     private org.apache.avro.Schema getAvroSchema(PluginTask task)

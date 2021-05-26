@@ -5,5 +5,6 @@ brokers:
   - "localhost:9092"
 other_producer_configs:
   buffer.memory: "67108864"
+key_column_name: id
 ignore_columns:
   - time

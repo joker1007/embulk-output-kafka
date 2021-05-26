@@ -32,8 +32,9 @@ class RecordProducerFactory
 
         configs.forEach(kafkaProps::setProperty);
 
-        if (task.getKeyColumnName().isPresent()) {
-            String keyColumnName = task.getKeyColumnName().get();
+        kafkaProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+        task.getKeyColumnName().ifPresent(keyColumnName -> {
             Column column = schema.getColumns().stream()
                     .filter(c -> c.getName().equals(keyColumnName))
                     .findFirst()
@@ -77,10 +78,7 @@ class RecordProducerFactory
                     throw new RuntimeException("json column is not supported for key_column_name");
                 }
             });
-        }
-        else {
-            kafkaProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, LongSerializer.class);
-        }
+        });
 
         return kafkaProps;
     }

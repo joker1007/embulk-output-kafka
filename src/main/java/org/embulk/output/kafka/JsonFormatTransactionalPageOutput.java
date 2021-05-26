@@ -6,8 +6,8 @@ import org.embulk.spi.PageReader;
 
 public class JsonFormatTransactionalPageOutput extends KafkaTransactionalPageOutput<ObjectNode, ObjectNode>
 {
-    public JsonFormatTransactionalPageOutput(KafkaProducer<Object, ObjectNode> producer, PageReader pageReader, KafkaOutputColumnVisitor<ObjectNode> columnVisitor, String topic, int taskIndex)
+    public JsonFormatTransactionalPageOutput(KafkaProducer<Object, ObjectNode> producer, PageReader pageReader, KafkaOutputColumnVisitor<ObjectNode> columnVisitor, String topic, int taskIndex, boolean treatProducerExceptionAsError)
     {
-        super(producer, pageReader, columnVisitor, topic, taskIndex);
+        super(producer, pageReader, columnVisitor, topic, taskIndex, treatProducerExceptionAsError);
     }
 };

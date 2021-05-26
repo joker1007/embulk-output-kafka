@@ -6,8 +6,8 @@ import org.embulk.spi.PageReader;
 
 public class AvroFormatTransactionalPageOutput extends KafkaTransactionalPageOutput<Object, GenericRecord>
 {
-    public AvroFormatTransactionalPageOutput(KafkaProducer<Object, Object> producer, PageReader pageReader, KafkaOutputColumnVisitor<GenericRecord> columnVisitor, String topic, int taskIndex)
+    public AvroFormatTransactionalPageOutput(KafkaProducer<Object, Object> producer, PageReader pageReader, KafkaOutputColumnVisitor<GenericRecord> columnVisitor, String topic, int taskIndex, boolean treatProducerExceptionAsError)
     {
-        super(producer, pageReader, columnVisitor, topic, taskIndex);
+        super(producer, pageReader, columnVisitor, topic, taskIndex, treatProducerExceptionAsError);
     }
 };
