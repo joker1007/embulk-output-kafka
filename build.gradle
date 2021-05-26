@@ -15,7 +15,7 @@ repositories {
     }
 }
 
-group = "org.embulk.output.kafka"
+group = "io.github.joker1007"
 version = "0.2.0"
 description = "Embulk output plugin for Apache Kafka"
 
