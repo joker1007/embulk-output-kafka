@@ -11,7 +11,7 @@ repositories {
     jcenter()
 
     maven {
-        url "http://packages.confluent.io/maven/"
+        url "https://packages.confluent.io/maven/"
     }
 }
 
@@ -59,6 +59,7 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
     compile("io.confluent:kafka-avro-serializer:6.1.0") {
+        exclude group: "org.apache.kafka", module: "kafka-clients"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
@@ -103,6 +104,14 @@ task checkstyle(type: Checkstyle) {
     source = sourceSets.main.allJava + sourceSets.test.allJava
 }
 
+task generateEmbulkProperties {
+    doLast {
+        mkdir "src/test/resources/.embulk"
+        def f = file("src/test/resources/.embulk/embulk.properties")
+        f.write("m2_repo=${System.properties["user.home"]}/.m2/repository\nplugins.output.kafka=maven:${project.group}:kafka:${project.version}")
+    }
+}
+
 gem {
     from("LICENSE.txt")
     authors = [ "joker1007" ]
@@ -115,4 +124,27 @@ gem {
 
 gemPush {
     host = "https://rubygems.org"
+}
+
+publishing {
+    publications {
+        embulkPluginMaven(MavenPublication) {  // Publish it with "publishEmbulkPluginMavenPublicationToMavenRepository".
+            from components.java  // Must be "components.java". The dependency modification works only for it.
+            pom {
+                licenses {
+                    license {
+                        // http://central.sonatype.org/pages/requirements.html#license-information
+                        name = "MIT License"
+                        url = "https://opensource.org/licenses/MIT"
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        mavenLocal()
+        maven {
+            url = "${project.buildDir}/mavenPublishLocal"
+        }
+    }
 }
