@@ -124,8 +124,6 @@ jobs:
 
       - run: ./gradlew publishToMavenLocal
 
-      - run: cp misc/settings.xml ~/.m2/settings.xml
-
       - run: cp build/publications/embulkPluginMaven/pom-default.xml pom.xml
 
       - restore_cache:
