@@ -19,7 +19,7 @@
 - **avsc**: inline avro schema config (json, default: `null`)
 - **subject_name**: subject name for schema_registry (string, default: `null`)
 - **ignore_columns**: remove columns from output  (array(string), default: `[]`)
-- **key_column_name**: use column value as record key (string, default: `null`, if this parameter is null, set random number as record key, and it can use column in `ignore_columns`)
+- **key_column_name**: use column value as record key (string, default: `null`, it can use columns in `ignore_columns`)
 - **partition_column_name**: use column value as partition id (string, default: `null`, this value is prefer to `key_column_name`, and if partition_column value is null, use key_column for partitioning)
 - **column_for_deletion**: Determine to delete (string, default: `null`, `column_for_deletion` column must be boolean. If the value of the column is `true`, KafkaProducer sends `null` value to a Kafka Broker.)
 - **record_batch_size**: kafka producer record batch size (integer, default: `1000`)

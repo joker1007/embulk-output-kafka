@@ -6,13 +6,7 @@ version: 2
 jobs:
   build:
     docker:
-      # specify the version you desire here
       - image: circleci/openjdk:8-jdk
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
 
     working_directory: ~/repo
 
@@ -42,3 +36,121 @@ jobs:
       - run: ./gradlew test
       - store_test_results:
           path: build/test-results
+
+  embulk-0.9:
+    docker:
+      - image: circleci/openjdk:8-jdk
+      - image: wurstmeister/zookeeper
+      - image: wurstmeister/kafka:2.13-2.7.0
+        environment:
+          KAFKA_ADVERTISED_HOST_NAME: localhost
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: localhost:2181
+          KAFKA_DELETE_TOPIC_ENABLE: true
+          KAFKA_CREATE_TOPICS: "json-topic:1:1"
+
+    working_directory: ~/repo
+    environment:
+      # Customize the JVM maximum heap limit
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+
+    steps:
+      - checkout
+
+      - run: curl -o ./embulk -L https://github.com/embulk/embulk/releases/download/v0.9.23/embulk-0.9.23.jar
+      - run: chmod +x ./embulk
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "build.gradle" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run: ./gradlew dependencies
+
+      - save_cache:
+          paths:
+            - ~/.gradle
+          key: v1-dependencies-{{ checksum "build.gradle" }}
+
+      - run: ./gradlew gem
+
+      - run:
+          name: run-embulk
+          command: ~/repo/embulk run -I ../../../build/gemContents/lib config_acceptance.yml
+          working_directory: src/test/resources
+
+  embulk-0.10:
+    docker:
+      - image: circleci/openjdk:8-jdk
+      - image: wurstmeister/zookeeper
+      - image: wurstmeister/kafka:2.13-2.7.0
+        environment:
+          KAFKA_ADVERTISED_HOST_NAME: localhost
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: localhost:2181
+          KAFKA_DELETE_TOPIC_ENABLE: true
+          KAFKA_CREATE_TOPICS: "json-topic:1:1"
+
+    working_directory: ~/repo
+    environment:
+      # Customize the JVM maximum heap limit
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+
+    steps:
+      - checkout
+
+      - run: curl -o ./embulk -L https://github.com/embulk/embulk/releases/download/v0.10.31/embulk-0.10.31.jar
+      - run: chmod +x ./embulk
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "build.gradle" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run: ./gradlew dependencies
+
+      - save_cache:
+          paths:
+            - ~/.gradle
+          key: v1-dependencies-{{ checksum "build.gradle" }}
+
+      - run: ./gradlew publishToMavenLocal
+
+      - run: cp misc/settings.xml ~/.m2/settings.xml
+
+      - run: cp build/publications/embulkPluginMaven/pom-default.xml pom.xml
+
+      - restore_cache:
+          keys:
+            - m2-{{ checksum "pom.xml" }}
+            - m2-
+
+      - run: mvn dependency:resolve
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: m2-{{ checksum "pom.xml" }}
+
+      - run: ./gradlew generateEmbulkProperties
+
+      - run:
+          name: run-embulk
+          command: ~/repo/embulk run config_acceptance.yml
+          working_directory: src/test/resources
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - build
+      - embulk-0.9
+      - embulk-0.10

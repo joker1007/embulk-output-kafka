@@ -1,9 +1,9 @@
 package org.embulk.output.kafka;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import java.util.HashMap;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.DoubleSerializer;
@@ -32,8 +32,9 @@ class RecordProducerFactory
 
         configs.forEach(kafkaProps::setProperty);
 
-        if (task.getKeyColumnName().isPresent()) {
-            String keyColumnName = task.getKeyColumnName().get();
+        kafkaProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+        task.getKeyColumnName().ifPresent(keyColumnName -> {
             Column column = schema.getColumns().stream()
                     .filter(c -> c.getName().equals(keyColumnName))
                     .findFirst()
@@ -77,10 +78,7 @@ class RecordProducerFactory
                     throw new RuntimeException("json column is not supported for key_column_name");
                 }
             });
-        }
-        else {
-            kafkaProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, LongSerializer.class);
-        }
+        });
 
         return kafkaProps;
     }
@@ -95,14 +93,13 @@ class RecordProducerFactory
         KafkaAvroSerializer kafkaAvroSerializer = new KafkaAvroSerializer();
         String schemaRegistryUrl = task.getSchemaRegistryUrl().orElseThrow(() -> new ConfigException("avro_with_schema_registry format needs schema_registry_url"));
 
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder()
-                .put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
+        Map<String, String> avroSerializerConfigs = new HashMap<>();
+        avroSerializerConfigs.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
 
         if (task.getValueSubjectNameStrategy().isPresent()) {
-            builder.put(AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY, task.getValueSubjectNameStrategy().get());
+            avroSerializerConfigs.put(AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY, task.getValueSubjectNameStrategy().get());
         }
 
-        Map<String, String> avroSerializerConfigs = builder.build();
         kafkaAvroSerializer.configure(avroSerializerConfigs, false);
 
         return new KafkaProducer<>(buildProperties(task, schema, configs), null, kafkaAvroSerializer);

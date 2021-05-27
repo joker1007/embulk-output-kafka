@@ -11,11 +11,11 @@ repositories {
     jcenter()
 
     maven {
-        url "http://packages.confluent.io/maven/"
+        url "https://packages.confluent.io/maven/"
     }
 }
 
-group = "org.embulk.output.kafka"
+group = "io.github.joker1007"
 version = "0.2.0"
 description = "Embulk output plugin for Apache Kafka"
 
@@ -23,12 +23,31 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
-    compileOnly  "org.embulk:embulk-core:0.9.22"
+    compileOnly "org.embulk:embulk-api:0.10.31"
+    compileOnly "org.embulk:embulk-spi:0.10.31"
 
     testCompile "junit:junit:4.13.2"
-    testCompile "org.embulk:embulk-test:0.9.22"
-    testCompile "org.embulk:embulk-standards:0.9.22"
-    testCompile "org.embulk:embulk-deps-buffer:0.9.22"
+    testCompile "org.embulk:embulk-api:0.10.31"
+    testCompile "org.embulk:embulk-spi:0.10.31"
+    testCompile "org.embulk:embulk-core:0.10.31"
+    testCompile "org.embulk:embulk-core:0.10.31:tests"
+    testCompile "org.embulk:embulk-junit4:0.10.31"
+    testCompile "org.embulk:embulk-input-file:0.10.31"
+    testCompile "org.embulk:embulk-parser-csv:0.10.31"
+    testCompile "org.embulk:embulk-deps:0.10.31"
+
+    compile("org.embulk:embulk-util-config:0.2.1") {
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
+        exclude group: "com.fasterxml.jackson.datatype", module: "jackson-datatype-jdk8"
+        exclude group: "javax.validation", module: "validation-api"
+    }
+
+    compile "com.fasterxml.jackson.core:jackson-annotations:2.6.7"
+    compile "com.fasterxml.jackson.core:jackson-core:2.6.7"
+    compile "com.fasterxml.jackson.core:jackson-databind:2.6.7"
+    compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7"
 
     compile("org.apache.kafka:kafka-clients:2.7.0") {
         exclude group: "org.slf4j", module: "slf4j-api"
@@ -40,6 +59,7 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
     compile("io.confluent:kafka-avro-serializer:6.1.0") {
+        exclude group: "org.apache.kafka", module: "kafka-clients"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
@@ -84,6 +104,14 @@ task checkstyle(type: Checkstyle) {
     source = sourceSets.main.allJava + sourceSets.test.allJava
 }
 
+task generateEmbulkProperties {
+    doLast {
+        mkdir "src/test/resources/.embulk"
+        def f = file("src/test/resources/.embulk/embulk.properties")
+        f.write("m2_repo=${System.properties["user.home"]}/.m2/repository\nplugins.output.kafka=maven:${project.group}:kafka:${project.version}")
+    }
+}
+
 gem {
     from("LICENSE.txt")
     authors = [ "joker1007" ]
@@ -96,4 +124,27 @@ gem {
 
 gemPush {
     host = "https://rubygems.org"
+}
+
+publishing {
+    publications {
+        embulkPluginMaven(MavenPublication) {  // Publish it with "publishEmbulkPluginMavenPublicationToMavenRepository".
+            from components.java  // Must be "components.java". The dependency modification works only for it.
+            pom {
+                licenses {
+                    license {
+                        // http://central.sonatype.org/pages/requirements.html#license-information
+                        name = "MIT License"
+                        url = "https://opensource.org/licenses/MIT"
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        mavenLocal()
+        maven {
+            url = "${project.buildDir}/mavenPublishLocal"
+        }
+    }
 }

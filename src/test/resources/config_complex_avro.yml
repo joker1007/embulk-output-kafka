@@ -6,6 +6,7 @@ brokers:
   - "localhost:9092"
 schema_registry_url: "mock://embulk-output-kafka"
 serialize_format: avro_with_schema_registry
+key_column_name: id
 other_producer_configs:
   buffer.memory: "67108864"
 avsc:

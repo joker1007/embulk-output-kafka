@@ -1,0 +1,17 @@
+in:
+  type: file
+  path_prefix: in1.csv
+  parser:
+    type: csv
+    skip_header_lines: 1
+    columns:
+      - {name: id, type: string}
+      - {name: int_item, type: long}
+      - {name: varchar_item, type: string}
+
+out:
+  type: kafka
+  topic: "json-topic"
+  serialize_format: json
+  brokers:
+    - "localhost:9092"

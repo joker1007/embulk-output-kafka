@@ -1,0 +1,16 @@
+<settings>
+  <profiles>
+    <profile>
+      <id>confluent-repo</id>
+      <repositories>
+        <repository>
+          <id>confluent</id>
+          <url>https://packages.confluent.io/maven/</url>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <activeProfile>confluent-repo</activeProfile>
+  </activeProfiles>
+</settings>
