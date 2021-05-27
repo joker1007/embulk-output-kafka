@@ -16,7 +16,7 @@ repositories {
 }
 
 group = "io.github.joker1007"
-version = "0.2.0"
+version = "0.3.0"
 description = "Embulk output plugin for Apache Kafka"
 
 sourceCompatibility = 1.8
@@ -45,7 +45,7 @@ dependencies {
     }
 
     compile "com.fasterxml.jackson.core:jackson-annotations:2.6.7"
-    compile "com.fasterxml.jackson.core:jackson-core:2.6.7"
+    compile "com.fasterxml.jackson.core:jackson-core:2.12.3"
     compile "com.fasterxml.jackson.core:jackson-databind:2.6.7"
     compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7"
 
