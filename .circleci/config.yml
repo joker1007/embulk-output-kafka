@@ -101,6 +101,7 @@ jobs:
       # Customize the JVM maximum heap limit
       JVM_OPTS: -Xmx3200m
       TERM: dumb
+      SKIP_SIGNING: true
 
     steps:
       - checkout
@@ -128,15 +129,15 @@ jobs:
 
       - restore_cache:
           keys:
-            - m2-{{ checksum "pom.xml" }}
-            - m2-
+            - m2-v1-{{ checksum "pom.xml" }}
+            - m2-v1-
 
       - run: mvn dependency:resolve
 
       - save_cache:
           paths:
             - ~/.m2
-          key: m2-{{ checksum "pom.xml" }}
+          key: m2-v1-{{ checksum "pom.xml" }}
 
       - run: ./gradlew generateEmbulkProperties
 

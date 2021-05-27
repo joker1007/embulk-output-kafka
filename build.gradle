@@ -127,8 +127,8 @@ task checkstyle(type: Checkstyle) {
 
 task generateEmbulkProperties {
     doLast {
-        mkdir "src/test/resources/.embulk"
-        def f = file("src/test/resources/.embulk/embulk.properties")
+        mkdir ".embulk"
+        def f = file(".embulk/embulk.properties")
         f.write("m2_repo=${System.properties["user.home"]}/.m2/repository\nplugins.output.kafka=maven:${project.group}:kafka:${project.version}")
     }
 }
@@ -199,10 +199,12 @@ publishing {
 }
 
 signing {
-    required { !gradle.taskGraph.hasTask("publishToMavenLocal") }
-    
     useGpgCmd()
     sign publishing.publications.embulkPluginMaven
+}
+
+tasks.withType(Sign) {
+    onlyIf { System.getenv().get("SKIP_SIGNING") == null }
 }
 
 tasks.withType(GenerateMavenPom) {
