@@ -49,7 +49,7 @@ dependencies {
     compile "com.fasterxml.jackson.core:jackson-databind:2.6.7"
     compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7"
 
-    compile("org.apache.kafka:kafka-clients:2.7.0") {
+    compile("org.apache.kafka:kafka-clients:6.1.1-ce") {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
     compile("org.apache.avro:avro:1.10.0") {
