@@ -16,7 +16,7 @@ repositories {
 }
 
 group = "io.github.joker1007"
-version = "0.2.0"
+version = "0.3.0"
 description = "Embulk output plugin for Apache Kafka"
 
 sourceCompatibility = 1.8
@@ -67,7 +67,7 @@ dependencies {
     }
 
     testCompile "com.salesforce.kafka.test:kafka-junit4:3.+"
-    testCompile("org.apache.kafka:kafka_2.12:2.7.+") {
+    testCompile("org.apache.kafka:kafka_2.12:6.1.+") {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
