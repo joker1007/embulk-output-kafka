@@ -129,15 +129,14 @@ jobs:
 
       - restore_cache:
           keys:
-            - m2-v1-{{ checksum "pom.xml" }}
-            - m2-v1-
+            - m2-v2-{{ checksum "pom.xml" }}-{{ checksum "build/libs/embulk-input-kafka-0.2.0.jar" }}
 
       - run: mvn dependency:resolve
 
       - save_cache:
           paths:
             - ~/.m2
-          key: m2-v1-{{ checksum "pom.xml" }}
+          key: m2-v2-{{ checksum "pom.xml" }}-{{ checksum "build/libs/embulk-input-kafka-0.2.0.jar" }}
 
       - run: ./gradlew generateEmbulkProperties
 
