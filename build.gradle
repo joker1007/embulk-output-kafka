@@ -55,7 +55,7 @@ dependencies {
     compile("org.apache.kafka:kafka-clients:2.7.0") {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
-    compile("org.apache.avro:avro:1.10.0") {
+    compile("org.apache.avro:avro:1.11.0") {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
