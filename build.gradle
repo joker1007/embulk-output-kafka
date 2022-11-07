@@ -47,7 +47,7 @@ dependencies {
         exclude group: "javax.validation", module: "validation-api"
     }
 
-    compile "com.fasterxml.jackson.core:jackson-annotations:2.6.7"
+    compile "com.fasterxml.jackson.core:jackson-annotations:2.14.0"
     compile "com.fasterxml.jackson.core:jackson-core:2.6.7"
     compile "com.fasterxml.jackson.core:jackson-databind:2.6.7"
     compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7"
