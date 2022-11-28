@@ -39,7 +39,7 @@ dependencies {
     testCompile "org.embulk:embulk-parser-csv:0.10.31"
     testCompile "org.embulk:embulk-deps:0.10.31"
 
-    compile("org.embulk:embulk-util-config:0.2.1") {
+    compile("org.embulk:embulk-util-config:0.3.2") {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
