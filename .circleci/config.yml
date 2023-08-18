@@ -39,7 +39,7 @@ jobs:
 
   embulk-0.9:
     docker:
-      - image: circleci/openjdk:8-jdk
+      - image: cimg/openjdk:8.0
       - image: wurstmeister/zookeeper
       - image: wurstmeister/kafka:2.13-2.7.0
         environment:
@@ -80,12 +80,16 @@ jobs:
 
       - run:
           name: run-embulk
-          command: ~/repo/embulk run -I ../../../build/gemContents/lib config_acceptance.yml
-          working_directory: src/test/resources
+          command: ~/repo/embulk run -I ../../../../../../build/gemContents/lib config_acceptance.yml
+          working_directory: src/test/resources/org/embulk/test
 
-  embulk-0.10:
+      - run: curl -L -o kaf.tar.gz https://github.com/birdayz/kaf/releases/download/v0.2.6/kaf_0.2.6_Linux_x86_64.tar.gz
+      - run: tar xvf kaf.tar.gz && chmod +x ./kaf
+      - run: ./kaf consume json-topic
+
+  embulk-0.11:
     docker:
-      - image: circleci/openjdk:8-jdk
+      - image: cimg/openjdk:11.0
       - image: wurstmeister/zookeeper
       - image: wurstmeister/kafka:2.13-2.7.0
         environment:
@@ -106,8 +110,7 @@ jobs:
     steps:
       - checkout
 
-      - run: curl -o ./embulk -L https://github.com/embulk/embulk/releases/download/v0.10.31/embulk-0.10.31.jar
-      - run: chmod +x ./embulk
+      - run: curl -o ./embulk.jar -L https://dl.embulk.org/embulk-0.11.0.jar
 
       # Download and cache dependencies
       - restore_cache:
@@ -129,21 +132,25 @@ jobs:
 
       - restore_cache:
           keys:
-            - m2-v2-{{ checksum "pom.xml" }}-{{ checksum "build/libs/embulk-input-kafka-0.2.0.jar" }}
+            - m2-v2-{{ checksum "pom.xml" }}
 
       - run: mvn dependency:resolve
 
       - save_cache:
           paths:
             - ~/.m2
-          key: m2-v2-{{ checksum "pom.xml" }}-{{ checksum "build/libs/embulk-input-kafka-0.2.0.jar" }}
+          key: m2-v2-{{ checksum "pom.xml" }}
 
       - run: ./gradlew generateEmbulkProperties
 
       - run:
           name: run-embulk
-          command: ~/repo/embulk run config_acceptance.yml
-          working_directory: src/test/resources
+          command: java -jar ~/repo/embulk.jar run config_acceptance.yml
+          working_directory: src/test/resources/org/embulk/test
+
+      - run: curl -L -o kaf.tar.gz https://github.com/birdayz/kaf/releases/download/v0.2.6/kaf_0.2.6_Linux_x86_64.tar.gz
+      - run: tar xvf kaf.tar.gz && chmod +x ./kaf
+      - run: ./kaf consume json-topic
 
 workflows:
   version: 2
@@ -151,4 +158,4 @@ workflows:
     jobs:
       - build
       - embulk-0.9
-      - embulk-0.10
+      - embulk-0.11
