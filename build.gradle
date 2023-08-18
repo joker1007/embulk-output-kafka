@@ -1,17 +1,14 @@
 import com.sun.xml.internal.ws.util.xml.XmlUtil
 
 plugins {
-    id "com.jfrog.bintray" version "1.8.5"
-    id "org.embulk.embulk-plugins" version "0.4.2"
+    id "org.embulk.embulk-plugins" version "0.5.5"
     id "java"
     id "maven-publish"
     id "signing"
-    id "checkstyle"
 }
 
 repositories {
     mavenCentral()
-    jcenter()
 
     maven {
         url "https://packages.confluent.io/maven/"
@@ -19,27 +16,26 @@ repositories {
 }
 
 group = "io.github.joker1007"
-version = "0.3.0"
+version = "0.3.1-SNAPSHOT"
 description = "Embulk output plugin for Apache Kafka"
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
-    compileOnly "org.embulk:embulk-api:0.10.31"
-    compileOnly "org.embulk:embulk-spi:0.10.31"
+    compileOnly "org.embulk:embulk-api:0.10.43"
+    compileOnly "org.embulk:embulk-spi:0.11"
 
-    testCompile "junit:junit:4.13.2"
-    testCompile "org.embulk:embulk-api:0.10.31"
-    testCompile "org.embulk:embulk-spi:0.10.31"
-    testCompile "org.embulk:embulk-core:0.10.31"
-    testCompile "org.embulk:embulk-core:0.10.31:tests"
-    testCompile "org.embulk:embulk-junit4:0.10.31"
-    testCompile "org.embulk:embulk-input-file:0.10.31"
-    testCompile "org.embulk:embulk-parser-csv:0.10.31"
-    testCompile "org.embulk:embulk-deps:0.10.31"
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "org.embulk:embulk-api:0.10.43"
+    testImplementation "org.embulk:embulk-spi:0.11"
+    testImplementation "org.embulk:embulk-core:0.11.0"
+    testImplementation "org.embulk:embulk-junit4:0.11.0"
+    testImplementation "org.embulk:embulk-input-file:0.11.0"
+    testImplementation "org.embulk:embulk-parser-csv:0.11.0"
+    testImplementation "org.embulk:embulk-deps:0.11.0"
 
-    compile("org.embulk:embulk-util-config:0.2.1") {
+    implementation("org.embulk:embulk-util-config:0.3.1") {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
@@ -47,34 +43,33 @@ dependencies {
         exclude group: "javax.validation", module: "validation-api"
     }
 
-    compile "com.fasterxml.jackson.core:jackson-annotations:2.6.7"
-    compile "com.fasterxml.jackson.core:jackson-core:2.6.7"
-    compile "com.fasterxml.jackson.core:jackson-databind:2.6.7"
-    compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:2.6.7"
+    implementation "com.fasterxml.jackson.core:jackson-core:2.6.7"
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.6.7"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7"
 
-    compile("org.apache.kafka:kafka-clients:2.7.0") {
+    implementation("org.apache.kafka:kafka-clients:2.8.2") {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
-    compile("org.apache.avro:avro:1.10.0") {
+    implementation("org.apache.avro:avro:1.11.1") {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
         exclude group: "org.slf4j", module: "slf4j-api"
     }
-    compile("io.confluent:kafka-avro-serializer:6.1.0") {
+    implementation("io.confluent:kafka-avro-serializer:6.2.2") {
         exclude group: "org.apache.kafka", module: "kafka-clients"
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "org.slf4j", module: "slf4j-api"
     }
 
-    testCompile "com.salesforce.kafka.test:kafka-junit4:3.+"
-    testCompile("org.apache.kafka:kafka_2.12:2.7.+") {
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
+    testImplementation "com.salesforce.kafka.test:kafka-junit4:3.+"
+    testImplementation("org.apache.kafka:kafka_2.12:2.8.+") {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
-//        exclude group: "com.fasterxml.jackson.dataformat", module: "jackson-dataformat-csv"
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "com.fasterxml.jackson.datatype", module: "jackson-datatype-jdk8"
     }
 }
@@ -106,23 +101,6 @@ embulkPlugin {
 test {
     minHeapSize = "512m"
     maxHeapSize = "4g"
-}
-
-checkstyle {
-    configFile = file("${project.rootDir}/config/checkstyle/checkstyle.xml")
-    toolVersion = '6.14.1'
-}
-checkstyleMain {
-    configFile = file("${project.rootDir}/config/checkstyle/default.xml")
-    ignoreFailures = true
-}
-checkstyleTest {
-    configFile = file("${project.rootDir}/config/checkstyle/default.xml")
-    ignoreFailures = true
-}
-task checkstyle(type: Checkstyle) {
-    classpath = sourceSets.main.output + sourceSets.test.output
-    source = sourceSets.main.allJava + sourceSets.test.allJava
 }
 
 task generateEmbulkProperties {

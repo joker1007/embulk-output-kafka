@@ -4,5 +4,5 @@ brokers:
   - "localhost:9092"
 schema_registry_url: "mock://embulk-output-kafka"
 serialize_format: avro_with_schema_registry
-avsc_file: ./src/test/resources/SimpleRecord.avsc
+avsc_file: ./src/test/resources/org/embulk/test/SimpleRecord.avsc
 key_column_name: id
