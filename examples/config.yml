@@ -1,0 +1,21 @@
+in:
+  type: file
+  path_prefix: "./in"
+  parser:
+    charset: UTF-8
+    newline: LF
+    type: csv
+    delimiter: ','
+    quote: '"'
+    skip_header_lines: 1
+    columns:
+    - {name: id, type: string}
+    - {name: int_item, type: long}
+    - {name: varchar_item, type: string}
+
+out:
+  type: kafka
+  topic: "embulk-test-topic"
+  serialize_format: json
+  brokers:
+  - "localhost:9092"

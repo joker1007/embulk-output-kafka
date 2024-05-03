@@ -1,10 +1,12 @@
-import com.sun.xml.internal.ws.util.xml.XmlUtil
+import groovy.xml.XmlUtil
+import groovy.xml.XmlParser
 
 plugins {
-    id "org.embulk.embulk-plugins" version "0.5.5"
+    id "org.embulk.embulk-plugins" version "0.7.0"
     id "java"
     id "maven-publish"
     id "signing"
+    id("com.diffplug.spotless") version "6.25.0"
 }
 
 repositories {
@@ -16,62 +18,48 @@ repositories {
 }
 
 group = "io.github.joker1007"
-version = "0.3.1"
+version = "0.4.0-SNAPSHOT"
 description = "Embulk output plugin for Apache Kafka"
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+
+    withJavadocJar()
+    withSourcesJar()
+}
+
+configurations {
+    compileClasspath.resolutionStrategy.activateDependencyLocking()
+    runtimeClasspath.resolutionStrategy.activateDependencyLocking()
+}
 
 dependencies {
-    compileOnly "org.embulk:embulk-api:0.10.43"
     compileOnly "org.embulk:embulk-spi:0.11"
 
     testImplementation "junit:junit:4.13.2"
     testImplementation "org.embulk:embulk-api:0.10.43"
     testImplementation "org.embulk:embulk-spi:0.11"
-    testImplementation "org.embulk:embulk-core:0.11.0"
-    testImplementation "org.embulk:embulk-junit4:0.11.0"
+    testImplementation "org.embulk:embulk-core:0.11.3"
+    testImplementation "org.embulk:embulk-junit4:0.11.3"
     testImplementation "org.embulk:embulk-input-file:0.11.0"
-    testImplementation "org.embulk:embulk-parser-csv:0.11.0"
-    testImplementation "org.embulk:embulk-deps:0.11.0"
+    testImplementation "org.embulk:embulk-parser-csv:0.11.3"
+    testImplementation "org.embulk:embulk-deps:0.11.3"
 
-    implementation("org.embulk:embulk-util-config:0.3.1") {
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
-        exclude group: "com.fasterxml.jackson.datatype", module: "jackson-datatype-jdk8"
-        exclude group: "javax.validation", module: "validation-api"
-    }
+    implementation("org.embulk:embulk-util-config:0.5.0")
 
-    implementation "com.fasterxml.jackson.core:jackson-annotations:2.6.7"
-    implementation "com.fasterxml.jackson.core:jackson-core:2.6.7"
-    implementation "com.fasterxml.jackson.core:jackson-databind:2.6.7"
-    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7"
+    implementation("org.apache.kafka:kafka-clients:3.6.2")
+    implementation("org.apache.avro:avro:1.11.3")
 
-    implementation("org.apache.kafka:kafka-clients:2.8.2") {
-        exclude group: "org.slf4j", module: "slf4j-api"
-    }
-    implementation("org.apache.avro:avro:1.11.1") {
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
-        exclude group: "org.slf4j", module: "slf4j-api"
-    }
-    implementation("io.confluent:kafka-avro-serializer:6.2.2") {
+    implementation("io.confluent:kafka-avro-serializer:7.6.1") {
         exclude group: "org.apache.kafka", module: "kafka-clients"
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
         exclude group: "org.slf4j", module: "slf4j-api"
+        exclude group: "org.yaml", module: "snakeyaml"
     }
 
-    testImplementation "com.salesforce.kafka.test:kafka-junit4:3.+"
-    testImplementation("org.apache.kafka:kafka_2.12:2.8.+") {
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
-        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
-        exclude group: "com.fasterxml.jackson.datatype", module: "jackson-datatype-jdk8"
-    }
+    testImplementation "org.testcontainers:testcontainers:1.19.7"
+    testImplementation "org.testcontainers:kafka:1.19.7"
 }
 
 java {
@@ -91,6 +79,18 @@ sourcesJar {
     from rootProject.file("LICENSE.txt")
 }
 
+spotless {
+    java {
+        importOrder()
+        removeUnusedImports()
+
+        googleJavaFormat()
+    }
+}
+
+tasks.compileJava {
+    dependsOn(tasks.spotlessApply)
+}
 
 embulkPlugin {
     mainClass = "org.embulk.output.kafka.KafkaOutputPlugin"
@@ -113,12 +113,12 @@ task generateEmbulkProperties {
 
 gem {
     from("LICENSE.txt")
-    authors = [ "joker1007" ]
-    email = [ "kakyoin.hierophant@gmail.com" ]
+    authors = ["joker1007"]
+    email = ["kakyoin.hierophant@gmail.com"]
     description = "Kafka output plugin for Embulk"
     summary = "Kafka output plugin for Embulk"
     homepage = "https://github.com/joker1007/embulk-output-kafka"
-    licenses = [ "MIT" ]
+    licenses = ["MIT"]
 }
 
 gemPush {
@@ -127,7 +127,11 @@ gemPush {
 
 publishing {
     publications {
-        embulkPluginMaven(MavenPublication) {  // Publish it with "publishEmbulkPluginMavenPublicationToMavenRepository".
+        maven(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+
+            // Publish it with "publishEmbulkPluginMavenPublicationToMavenRepository".
             from components.java  // Must be "components.java". The dependency modification works only for it.
             pom {
                 name = "embulk-output-kafka"
@@ -178,7 +182,7 @@ publishing {
 
 signing {
     useGpgCmd()
-    sign publishing.publications.embulkPluginMaven
+    sign publishing.publications.maven
 }
 
 tasks.withType(Sign) {
@@ -187,17 +191,17 @@ tasks.withType(Sign) {
 
 tasks.withType(GenerateMavenPom) {
     doLast {
-        def f = file("${buildDir.name}/publications/embulkPluginMaven/pom-default.xml")
-        def parser = new XmlParser()
+        def f = file(layout.buildDirectory.file("publications/maven/pom-default.xml"))
+        XmlParser parser = new XmlParser()
         def xml = parser.parse(f)
         def repos = "<repositories>\n" +
-                    "  <repository>\n" +
-                    "    <id>confluent</id>\n" +
-                    "    <url>https://packages.confluent.io/maven/</url>\n" +
-                    "  </repository>\n" +
-                    "</repositories>\n"
+                "  <repository>\n" +
+                "    <id>confluent</id>\n" +
+                "    <url>https://packages.confluent.io/maven/</url>\n" +
+                "  </repository>\n" +
+                "</repositories>\n"
         def reposNode = parser.parseText(repos)
         xml.append(reposNode)
-        f.write(groovy.xml.XmlUtil.serialize(xml))
+        f.write(XmlUtil.serialize(xml))
     }
 }

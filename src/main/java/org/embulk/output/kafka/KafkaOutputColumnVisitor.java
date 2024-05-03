@@ -4,115 +4,101 @@ import org.embulk.spi.Column;
 import org.embulk.spi.ColumnVisitor;
 import org.embulk.spi.PageReader;
 
-public abstract class KafkaOutputColumnVisitor<T> implements ColumnVisitor
-{
-    private KafkaOutputPlugin.PluginTask task;
-    PageReader pageReader;
-    private String partitionColumnName;
+public abstract class KafkaOutputColumnVisitor<T> implements ColumnVisitor {
+  private KafkaOutputPlugin.PluginTask task;
+  PageReader pageReader;
+  private String partitionColumnName;
 
-    private Object recordKey = null;
-    private String topicName = null;
-    private Integer partition = null;
-    private boolean deletion = false;
+  private Object recordKey = null;
+  private String topicName = null;
+  private Integer partition = null;
+  private boolean deletion = false;
 
-    KafkaOutputColumnVisitor(KafkaOutputPlugin.PluginTask task, PageReader pageReader)
-    {
-        this.task = task;
-        this.pageReader = pageReader;
-        this.partitionColumnName = task.getPartitionColumnName().orElse(null);
+  KafkaOutputColumnVisitor(KafkaOutputPlugin.PluginTask task, PageReader pageReader) {
+    this.task = task;
+    this.pageReader = pageReader;
+    this.partitionColumnName = task.getPartitionColumnName().orElse(null);
+  }
+
+  public abstract T getRecord();
+
+  Object getRecordKey() {
+    return recordKey;
+  }
+
+  private void setRecordKey(Column column, Object value) {
+    if (task.getKeyColumnName().isPresent()
+        && task.getKeyColumnName().get().equals(column.getName())) {
+      recordKey = value;
     }
+  }
 
-    public abstract T getRecord();
+  String getTopicName() {
+    return topicName;
+  }
 
-    Object getRecordKey()
-    {
-        return recordKey;
+  private void setTopicName(Column column, String value) {
+    if (task.getTopicColumn().isPresent() && task.getTopicColumn().get().equals(column.getName())) {
+      topicName = value;
     }
+  }
 
-    private void setRecordKey(Column column, Object value)
-    {
-        if (task.getKeyColumnName().isPresent() && task.getKeyColumnName().get().equals(column.getName())) {
-            recordKey = value;
-        }
+  Integer getPartition() {
+    return partition;
+  }
+
+  boolean isDeletion() {
+    return deletion;
+  }
+
+  void reset() {
+    this.recordKey = null;
+    this.topicName = null;
+    this.partition = null;
+    this.deletion = false;
+  }
+
+  boolean isIgnoreColumn(Column column) {
+    return task.getIgnoreColumns().stream().anyMatch(name -> name.equals(column.getName()));
+  }
+
+  boolean isColumnForDeletion(Column column) {
+    return task.getColumnForDeletion().map(name -> name.equals(column.getName())).orElse(false);
+  }
+
+  @Override
+  public void booleanColumn(Column column) {
+    if (!pageReader.isNull(column)) {
+      if (isColumnForDeletion(column)) {
+        deletion = pageReader.getBoolean(column);
+      }
     }
+  }
 
-    String getTopicName()
-    {
-        return topicName;
+  @Override
+  public void longColumn(Column column) {
+    if (!pageReader.isNull(column)) {
+      long value = pageReader.getLong(column);
+      setRecordKey(column, value);
+
+      if (partitionColumnName != null && partitionColumnName.equals(column.getName())) {
+        partition = Long.valueOf(value).intValue();
+      }
     }
+  }
 
-    private void setTopicName(Column column, String value)
-    {
-        if (task.getTopicColumn().isPresent() && task.getTopicColumn().get().equals(column.getName())) {
-            topicName = value;
-        }
+  @Override
+  public void doubleColumn(Column column) {
+    if (!pageReader.isNull(column)) {
+      setRecordKey(column, pageReader.getDouble(column));
     }
+  }
 
-    Integer getPartition()
-    {
-        return partition;
+  @Override
+  public void stringColumn(Column column) {
+    if (!pageReader.isNull(column)) {
+      setRecordKey(column, pageReader.getString(column));
+      setTopicName(column, pageReader.getString(column));
     }
-
-    boolean isDeletion()
-    {
-        return deletion;
-    }
-
-    void reset()
-    {
-        this.recordKey = null;
-        this.topicName = null;
-        this.partition = null;
-        this.deletion = false;
-    }
-
-    boolean isIgnoreColumn(Column column)
-    {
-        return task.getIgnoreColumns().stream().anyMatch(name -> name.equals(column.getName()));
-    }
-
-    boolean isColumnForDeletion(Column column)
-    {
-        return task.getColumnForDeletion().map(name -> name.equals(column.getName())).orElse(false);
-    }
-
-    @Override
-    public void booleanColumn(Column column)
-    {
-        if (!pageReader.isNull(column)) {
-            if (isColumnForDeletion(column)) {
-                deletion = pageReader.getBoolean(column);
-            }
-        }
-    }
-
-    @Override
-    public void longColumn(Column column)
-    {
-        if (!pageReader.isNull(column)) {
-            long value = pageReader.getLong(column);
-            setRecordKey(column, value);
-
-            if (partitionColumnName != null && partitionColumnName.equals(column.getName())) {
-                partition = Long.valueOf(value).intValue();
-            }
-        }
-    }
-
-    @Override
-    public void doubleColumn(Column column)
-    {
-        if (!pageReader.isNull(column)) {
-            setRecordKey(column, pageReader.getDouble(column));
-        }
-    }
-
-    @Override
-    public void stringColumn(Column column)
-    {
-        if (!pageReader.isNull(column)) {
-            setRecordKey(column, pageReader.getString(column));
-            setTopicName(column, pageReader.getString(column));
-        }
-    }
+  }
 }

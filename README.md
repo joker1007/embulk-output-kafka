@@ -1,6 +1,13 @@
 # Kafka output plugin for Embulk
 [![CircleCI](https://circleci.com/gh/joker1007/embulk-output-kafka.svg?style=svg)](https://circleci.com/gh/joker1007/embulk-output-kafka)
 
+## Compatibility
+
+| embulk-output-kafka   | embulk          |
+| --------------------- | ------          |
+| 0.4.x                 | 0.11.x or later |
+| 0.3.x                 | 0.9.x or later  |
+
 ## Overview
 
 * **Plugin type**: output
