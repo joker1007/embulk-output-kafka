@@ -1,7 +1,8 @@
-import com.sun.xml.internal.ws.util.xml.XmlUtil
+import groovy.xml.XmlUtil
+import groovy.xml.XmlParser
 
 plugins {
-    id "org.embulk.embulk-plugins" version "0.5.5"
+    id "org.embulk.embulk-plugins" version "0.7.0"
     id "java"
     id "maven-publish"
     id "signing"
@@ -19,8 +20,8 @@ group = "io.github.joker1007"
 version = "0.3.1"
 description = "Embulk output plugin for Apache Kafka"
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 dependencies {
     compileOnly "org.embulk:embulk-api:0.10.43"
@@ -113,12 +114,12 @@ task generateEmbulkProperties {
 
 gem {
     from("LICENSE.txt")
-    authors = [ "joker1007" ]
-    email = [ "kakyoin.hierophant@gmail.com" ]
+    authors = ["joker1007"]
+    email = ["kakyoin.hierophant@gmail.com"]
     description = "Kafka output plugin for Embulk"
     summary = "Kafka output plugin for Embulk"
     homepage = "https://github.com/joker1007/embulk-output-kafka"
-    licenses = [ "MIT" ]
+    licenses = ["MIT"]
 }
 
 gemPush {
@@ -127,7 +128,8 @@ gemPush {
 
 publishing {
     publications {
-        embulkPluginMaven(MavenPublication) {  // Publish it with "publishEmbulkPluginMavenPublicationToMavenRepository".
+        embulkPluginMaven(MavenPublication) {
+            // Publish it with "publishEmbulkPluginMavenPublicationToMavenRepository".
             from components.java  // Must be "components.java". The dependency modification works only for it.
             pom {
                 name = "embulk-output-kafka"
@@ -187,17 +189,17 @@ tasks.withType(Sign) {
 
 tasks.withType(GenerateMavenPom) {
     doLast {
-        def f = file("${buildDir.name}/publications/embulkPluginMaven/pom-default.xml")
-        def parser = new XmlParser()
+        def f = file(layout.buildDirectory.file("publications/embulkPluginMaven/pom-default.xml"))
+        XmlParser parser = new XmlParser()
         def xml = parser.parse(f)
         def repos = "<repositories>\n" +
-                    "  <repository>\n" +
-                    "    <id>confluent</id>\n" +
-                    "    <url>https://packages.confluent.io/maven/</url>\n" +
-                    "  </repository>\n" +
-                    "</repositories>\n"
+                "  <repository>\n" +
+                "    <id>confluent</id>\n" +
+                "    <url>https://packages.confluent.io/maven/</url>\n" +
+                "  </repository>\n" +
+                "</repositories>\n"
         def reposNode = parser.parseText(repos)
         xml.append(reposNode)
-        f.write(groovy.xml.XmlUtil.serialize(xml))
+        f.write(XmlUtil.serialize(xml))
     }
 }
