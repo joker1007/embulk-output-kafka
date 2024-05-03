@@ -6,6 +6,7 @@ plugins {
     id "java"
     id "maven-publish"
     id "signing"
+    id("com.diffplug.spotless") version "6.25.0"
 }
 
 repositories {
@@ -20,8 +21,14 @@ group = "io.github.joker1007"
 version = "0.3.1"
 description = "Embulk output plugin for Apache Kafka"
 
-sourceCompatibility = 11
-targetCompatibility = 11
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+
+    withJavadocJar()
+    withSourcesJar()
+}
 
 dependencies {
     compileOnly "org.embulk:embulk-api:0.10.43"
@@ -92,6 +99,18 @@ sourcesJar {
     from rootProject.file("LICENSE.txt")
 }
 
+spotless {
+    java {
+        importOrder()
+        removeUnusedImports()
+
+        googleJavaFormat()
+    }
+}
+
+tasks.compileJava {
+    dependsOn(tasks.spotlessApply)
+}
 
 embulkPlugin {
     mainClass = "org.embulk.output.kafka.KafkaOutputPlugin"
