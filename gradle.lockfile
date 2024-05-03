@@ -1,0 +1,40 @@
+# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+com.eclipsesource.minimal-json:minimal-json:0.9.5=compileClasspath,runtimeClasspath
+com.fasterxml.jackson.core:jackson-annotations:2.15.4=compileClasspath,runtimeClasspath
+com.fasterxml.jackson.core:jackson-core:2.15.4=compileClasspath,runtimeClasspath
+com.fasterxml.jackson.core:jackson-databind:2.15.4=compileClasspath,runtimeClasspath
+com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.15.4=compileClasspath,runtimeClasspath
+com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.15.4=compileClasspath,runtimeClasspath
+com.fasterxml.jackson:jackson-bom:2.15.4=compileClasspath,runtimeClasspath
+com.github.luben:zstd-jni:1.5.5-1=runtimeClasspath
+com.google.code.findbugs:jsr305:3.0.2=compileClasspath,runtimeClasspath
+com.google.errorprone:error_prone_annotations:2.18.0=compileClasspath,runtimeClasspath
+com.google.guava:failureaccess:1.0.1=compileClasspath,runtimeClasspath
+com.google.guava:guava:32.0.1-jre=compileClasspath,runtimeClasspath
+com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava=compileClasspath,runtimeClasspath
+com.google.j2objc:j2objc-annotations:2.8=compileClasspath,runtimeClasspath
+com.google.re2j:re2j:1.6=compileClasspath,runtimeClasspath
+commons-io:commons-io:2.15.1=compileClasspath,runtimeClasspath
+io.confluent:common-utils:7.6.1=compileClasspath,runtimeClasspath
+io.confluent:kafka-avro-serializer:7.6.1=compileClasspath,runtimeClasspath
+io.confluent:kafka-schema-registry-client:7.6.1=compileClasspath,runtimeClasspath
+io.confluent:kafka-schema-serializer:7.6.1=compileClasspath,runtimeClasspath
+io.confluent:logredactor-metrics:1.0.12=compileClasspath,runtimeClasspath
+io.confluent:logredactor:1.0.12=compileClasspath,runtimeClasspath
+io.swagger.core.v3:swagger-annotations:2.1.10=compileClasspath,runtimeClasspath
+javax.validation:validation-api:2.0.1.Final=compileClasspath,runtimeClasspath
+org.apache.avro:avro:1.11.3=compileClasspath,runtimeClasspath
+org.apache.commons:commons-compress:1.26.0=compileClasspath,runtimeClasspath
+org.apache.commons:commons-lang3:3.14.0=compileClasspath,runtimeClasspath
+org.apache.kafka:kafka-clients:3.6.2=compileClasspath,runtimeClasspath
+org.checkerframework:checker-qual:3.33.0=compileClasspath,runtimeClasspath
+org.embulk:embulk-spi:0.11=compileClasspath
+org.embulk:embulk-util-config:0.5.0=compileClasspath,runtimeClasspath
+org.lz4:lz4-java:1.8.0=runtimeClasspath
+org.msgpack:msgpack-core:0.8.24=compileClasspath
+org.slf4j:slf4j-api:1.7.36=runtimeClasspath
+org.slf4j:slf4j-api:2.0.7=compileClasspath
+org.xerial.snappy:snappy-java:1.1.10.5=runtimeClasspath
+empty=

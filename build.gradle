@@ -30,6 +30,11 @@ java {
     withSourcesJar()
 }
 
+configurations {
+    compileClasspath.resolutionStrategy.activateDependencyLocking()
+    runtimeClasspath.resolutionStrategy.activateDependencyLocking()
+}
+
 dependencies {
     compileOnly "org.embulk:embulk-spi:0.11"
 
@@ -122,7 +127,10 @@ gemPush {
 
 publishing {
     publications {
-        embulkPluginMaven(MavenPublication) {
+        maven(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+
             // Publish it with "publishEmbulkPluginMavenPublicationToMavenRepository".
             from components.java  // Must be "components.java". The dependency modification works only for it.
             pom {
@@ -174,7 +182,7 @@ publishing {
 
 signing {
     useGpgCmd()
-    sign publishing.publications.embulkPluginMaven
+    sign publishing.publications.maven
 }
 
 tasks.withType(Sign) {
@@ -183,7 +191,7 @@ tasks.withType(Sign) {
 
 tasks.withType(GenerateMavenPom) {
     doLast {
-        def f = file(layout.buildDirectory.file("publications/embulkPluginMaven/pom-default.xml"))
+        def f = file(layout.buildDirectory.file("publications/maven/pom-default.xml"))
         XmlParser parser = new XmlParser()
         def xml = parser.parse(f)
         def repos = "<repositories>\n" +
