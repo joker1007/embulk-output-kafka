@@ -18,7 +18,7 @@ repositories {
 }
 
 group = "io.github.joker1007"
-version = "0.3.1"
+version = "0.4.0-SNAPSHOT"
 description = "Embulk output plugin for Apache Kafka"
 
 java {
