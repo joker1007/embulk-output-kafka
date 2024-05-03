@@ -54,7 +54,6 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 public class TestKafkaOutputPlugin {
-  @Rule
   public KafkaContainer kafka =
       new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.1"));
 
@@ -68,13 +67,24 @@ public class TestKafkaOutputPlugin {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
+  private String getBootstrapServer() {
+    if (System.getenv().get("CI") == null) {
+      return kafka.getHost() + ":" + kafka.getFirstMappedPort();
+    } else {
+      return "localhost:9092";
+    }
+  }
+
   private AdminClient getAdminClient() {
     return AdminClient.create(
-        ImmutableMap.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()));
+        ImmutableMap.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServer()));
   }
 
   @Before
   public void setUp() {
+    if (System.getenv().get("CI") == null) {
+      kafka.start();
+    }
     AdminClient adminClient = getAdminClient();
     Collection<NewTopic> topics =
         ImmutableList.of(
@@ -93,11 +103,13 @@ public class TestKafkaOutputPlugin {
         ImmutableList.of(
             "json-topic", "json-complex-topic", "avro-simple-topic", "avro-complex-topic"));
     adminClient.close();
+    if (System.getenv().get("CI") == null) {
+      kafka.stop();
+    }
   }
 
   private void setBootstrapServer(ConfigSource configSource) {
-    configSource.set(
-        "brokers", ImmutableList.of(kafka.getHost() + ":" + kafka.getFirstMappedPort()));
+    configSource.set("brokers", ImmutableList.of(getBootstrapServer()));
   }
 
   private <K, V> List<ConsumerRecord<K, V>> consumeAllRecordsFromTopic(
@@ -105,7 +117,7 @@ public class TestKafkaOutputPlugin {
       Class<? extends Deserializer<K>> keyDeserializer,
       Class<? extends Deserializer<V>> valueDeserializer) {
     Properties props = new Properties();
-    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServer());
     props.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group");
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer.getName());
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer.getName());
