@@ -166,7 +166,7 @@ public class KafkaOutputPlugin implements OutputPlugin {
         throw new RuntimeException("target topic is not found");
       }
     } catch (InterruptedException | ExecutionException | TimeoutException e) {
-      throw new RuntimeException("failed to connect kafka brokers");
+      throw new RuntimeException("failed to connect kafka brokers", e);
     }
 
     control.run(task.toTaskSource());

@@ -26,11 +26,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -54,6 +57,7 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 public class TestKafkaOutputPlugin {
+  @Rule
   public KafkaContainer kafka =
       new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.1"));
 
@@ -68,11 +72,7 @@ public class TestKafkaOutputPlugin {
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private String getBootstrapServer() {
-    if (System.getenv().get("CI") == null) {
-      return kafka.getHost() + ":" + kafka.getFirstMappedPort();
-    } else {
-      return "localhost:9092";
-    }
+    return kafka.getHost() + ":" + kafka.getFirstMappedPort();
   }
 
   private AdminClient getAdminClient() {
@@ -80,32 +80,40 @@ public class TestKafkaOutputPlugin {
         ImmutableMap.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServer()));
   }
 
+  private String jsonTopic;
+  private String jsonComplexTopic;
+  private String avroSimpleTopic;
+  private String avroComplexTopic;
+
   @Before
   public void setUp() {
-    if (System.getenv().get("CI") == null) {
-      kafka.start();
-    }
     AdminClient adminClient = getAdminClient();
+    jsonTopic = "json-topic-" + System.currentTimeMillis();
+    jsonComplexTopic = "json-complex-topic-" + System.currentTimeMillis();
+    avroSimpleTopic = "avro-simple-topic-" + System.currentTimeMillis();
+    avroComplexTopic = "avro-complex-topic-" + System.currentTimeMillis();
     Collection<NewTopic> topics =
         ImmutableList.of(
-            new NewTopic("json-topic", 8, (short) 1),
-            new NewTopic("json-complex-topic", 8, (short) 1),
-            new NewTopic("avro-simple-topic", 8, (short) 1),
-            new NewTopic("avro-complex-topic", 8, (short) 1));
+            new NewTopic(jsonTopic, 8, (short) 1),
+            new NewTopic(jsonComplexTopic, 8, (short) 1),
+            new NewTopic(avroSimpleTopic, 8, (short) 1),
+            new NewTopic(avroComplexTopic, 8, (short) 1));
     adminClient.createTopics(topics);
     adminClient.close();
   }
 
   @After
-  public void tearDown() {
+  public void tearDown() throws ExecutionException, InterruptedException {
     AdminClient adminClient = getAdminClient();
-    adminClient.deleteTopics(
-        ImmutableList.of(
-            "json-topic", "json-complex-topic", "avro-simple-topic", "avro-complex-topic"));
-    adminClient.close();
-    if (System.getenv().get("CI") == null) {
-      kafka.stop();
+    DeleteTopicsResult result =
+        adminClient.deleteTopics(
+            ImmutableList.of(jsonTopic, jsonComplexTopic, avroSimpleTopic, avroComplexTopic));
+    result.all().get();
+    Set<String> topics = adminClient.listTopics().names().get();
+    while (!topics.isEmpty()) {
+      topics = adminClient.listTopics().names().get();
     }
+    adminClient.close();
   }
 
   private void setBootstrapServer(ConfigSource configSource) {
@@ -136,13 +144,13 @@ public class TestKafkaOutputPlugin {
   @Test
   public void testSimpleJson() throws IOException {
     ConfigSource configSource = embulk.loadYamlResource("config_simple.yml");
+    configSource.set("topic", jsonTopic);
     setBootstrapServer(configSource);
     embulk.runOutput(
         configSource, Paths.get(Resources.getResource("org/embulk/test/in1.csv").getPath()));
 
     List<ConsumerRecord<String, String>> consumerRecords =
-        consumeAllRecordsFromTopic(
-            "json-topic", StringDeserializer.class, StringDeserializer.class);
+        consumeAllRecordsFromTopic(jsonTopic, StringDeserializer.class, StringDeserializer.class);
 
     assertEquals(3, consumerRecords.size());
     List<JsonNode> deserializedRecords = new ArrayList<>();
@@ -174,13 +182,14 @@ public class TestKafkaOutputPlugin {
   @Test
   public void testComplexJson() throws IOException {
     ConfigSource configSource = embulk.loadYamlResource("config_complex.yml");
+    configSource.set("topic", jsonComplexTopic);
     setBootstrapServer(configSource);
 
     embulk.runOutput(
         configSource, Paths.get(Resources.getResource("org/embulk/test/in_complex.csv").getPath()));
     List<ConsumerRecord<String, String>> consumerRecords =
         consumeAllRecordsFromTopic(
-            "json-complex-topic", StringDeserializer.class, StringDeserializer.class);
+            jsonComplexTopic, StringDeserializer.class, StringDeserializer.class);
 
     assertEquals(3, consumerRecords.size());
     List<JsonNode> deserializedRecords = new ArrayList<>();
@@ -216,6 +225,7 @@ public class TestKafkaOutputPlugin {
   @Test
   public void testSimpleAvro() throws IOException {
     ConfigSource configSource = embulk.loadYamlResource("config_simple_avro.yml");
+    configSource.set("topic", avroSimpleTopic);
     setBootstrapServer(configSource);
 
     embulk.runOutput(
@@ -228,15 +238,14 @@ public class TestKafkaOutputPlugin {
 
       List<ConsumerRecord<byte[], byte[]>> consumerRecords =
           consumeAllRecordsFromTopic(
-              "avro-simple-topic", ByteArrayDeserializer.class, ByteArrayDeserializer.class);
+              avroSimpleTopic, ByteArrayDeserializer.class, ByteArrayDeserializer.class);
 
       assertEquals(3, consumerRecords.size());
       List<GenericRecord> genericRecords =
           consumerRecords.stream()
               .map(
                   r ->
-                      (GenericRecord)
-                          kafkaAvroDeserializer.deserialize("avro-simple-topic", r.value()))
+                      (GenericRecord) kafkaAvroDeserializer.deserialize(avroSimpleTopic, r.value()))
               .collect(Collectors.toList());
 
       List<String> ids =
@@ -265,12 +274,13 @@ public class TestKafkaOutputPlugin {
   @Test
   public void testSimpleAvroSchemaFromRegistry() throws IOException, RestClientException {
     ConfigSource configSource = embulk.loadYamlResource("config_simple_avro.yml");
+    configSource.set("topic", avroSimpleTopic);
     Object avsc = configSource.get(Object.class, "avsc");
     String avscString = objectMapper.writeValueAsString(avsc);
     configSource.set("avsc", null);
     ParsedSchema parsedSchema = new AvroSchema(avscString);
     MockSchemaRegistry.getClientForScope("embulk-output-kafka")
-        .register("avro-simple-topic-value", parsedSchema);
+        .register(avroSimpleTopic + "-value", parsedSchema);
     setBootstrapServer(configSource);
 
     embulk.runOutput(
@@ -283,15 +293,14 @@ public class TestKafkaOutputPlugin {
 
       List<ConsumerRecord<byte[], byte[]>> consumerRecords =
           consumeAllRecordsFromTopic(
-              "avro-simple-topic", ByteArrayDeserializer.class, ByteArrayDeserializer.class);
+              avroSimpleTopic, ByteArrayDeserializer.class, ByteArrayDeserializer.class);
 
       assertEquals(3, consumerRecords.size());
       List<GenericRecord> genericRecords =
           consumerRecords.stream()
               .map(
                   r ->
-                      (GenericRecord)
-                          kafkaAvroDeserializer.deserialize("avro-simple-topic", r.value()))
+                      (GenericRecord) kafkaAvroDeserializer.deserialize(avroSimpleTopic, r.value()))
               .collect(Collectors.toList());
 
       List<String> ids =
@@ -320,6 +329,7 @@ public class TestKafkaOutputPlugin {
   @Test
   public void testSimpleAvroAvscFile() throws IOException {
     ConfigSource configSource = embulk.loadYamlResource("config_simple_avro_avsc_file.yml");
+    configSource.set("topic", avroSimpleTopic);
     setBootstrapServer(configSource);
 
     embulk.runOutput(
@@ -332,15 +342,14 @@ public class TestKafkaOutputPlugin {
 
       List<ConsumerRecord<byte[], byte[]>> consumerRecords =
           consumeAllRecordsFromTopic(
-              "avro-simple-topic", ByteArrayDeserializer.class, ByteArrayDeserializer.class);
+              avroSimpleTopic, ByteArrayDeserializer.class, ByteArrayDeserializer.class);
 
       assertEquals(3, consumerRecords.size());
       List<GenericRecord> genericRecords =
           consumerRecords.stream()
               .map(
                   r ->
-                      (GenericRecord)
-                          kafkaAvroDeserializer.deserialize("avro-simple-topic", r.value()))
+                      (GenericRecord) kafkaAvroDeserializer.deserialize(avroSimpleTopic, r.value()))
               .collect(Collectors.toList());
 
       List<String> ids =
@@ -369,6 +378,7 @@ public class TestKafkaOutputPlugin {
   @Test
   public void testSimpleAvroComplex() throws IOException {
     ConfigSource configSource = embulk.loadYamlResource("config_complex_avro.yml");
+    configSource.set("topic", avroComplexTopic);
     setBootstrapServer(configSource);
 
     embulk.runOutput(
@@ -381,7 +391,7 @@ public class TestKafkaOutputPlugin {
 
       List<ConsumerRecord<byte[], byte[]>> consumerRecords =
           consumeAllRecordsFromTopic(
-              "avro-complex-topic", ByteArrayDeserializer.class, ByteArrayDeserializer.class);
+              avroComplexTopic, ByteArrayDeserializer.class, ByteArrayDeserializer.class);
 
       assertEquals(3, consumerRecords.size());
       List<GenericRecord> genericRecords =
@@ -389,7 +399,7 @@ public class TestKafkaOutputPlugin {
               .map(
                   r ->
                       (GenericRecord)
-                          kafkaAvroDeserializer.deserialize("avro-complex-topic", r.value()))
+                          kafkaAvroDeserializer.deserialize(avroComplexTopic, r.value()))
               .collect(Collectors.toList());
 
       List<String> ids =
@@ -417,12 +427,12 @@ public class TestKafkaOutputPlugin {
   @Test
   public void testKeyColumnConfig() throws IOException {
     ConfigSource configSource = embulk.loadYamlResource("config_with_key_column.yml");
+    configSource.set("topic", jsonTopic);
     setBootstrapServer(configSource);
     embulk.runOutput(
         configSource, Paths.get(Resources.getResource("org/embulk/test/in1.csv").getPath()));
     List<ConsumerRecord<String, String>> consumerRecords =
-        consumeAllRecordsFromTopic(
-            "json-topic", StringDeserializer.class, StringDeserializer.class);
+        consumeAllRecordsFromTopic(jsonTopic, StringDeserializer.class, StringDeserializer.class);
 
     assertEquals(3, consumerRecords.size());
     List<String> keys = new ArrayList<>();
@@ -438,12 +448,12 @@ public class TestKafkaOutputPlugin {
   @Test
   public void testPartitionColumnConfig() throws IOException {
     ConfigSource configSource = embulk.loadYamlResource("config_with_partition_column.yml");
+    configSource.set("topic", jsonTopic);
     setBootstrapServer(configSource);
     embulk.runOutput(
         configSource, Paths.get(Resources.getResource("org/embulk/test/in1.csv").getPath()));
     List<ConsumerRecord<String, String>> consumerRecords =
-        consumeAllRecordsFromTopic(
-            "json-topic", StringDeserializer.class, StringDeserializer.class);
+        consumeAllRecordsFromTopic(jsonTopic, StringDeserializer.class, StringDeserializer.class);
 
     assertEquals(3, consumerRecords.size());
     List<Integer> partitions = new ArrayList<>();
@@ -459,13 +469,13 @@ public class TestKafkaOutputPlugin {
   @Test
   public void testColumnForDeletion() throws IOException {
     ConfigSource configSource = embulk.loadYamlResource("config_with_column_for_deletion.yml");
+    configSource.set("topic", jsonTopic);
     setBootstrapServer(configSource);
     embulk.runOutput(
         configSource,
         Paths.get(Resources.getResource("org/embulk/test/in_with_deletion.csv").getPath()));
     List<ConsumerRecord<String, String>> consumerRecords =
-        consumeAllRecordsFromTopic(
-            "json-topic", StringDeserializer.class, StringDeserializer.class);
+        consumeAllRecordsFromTopic(jsonTopic, StringDeserializer.class, StringDeserializer.class);
 
     assertEquals(3, consumerRecords.size());
     HashMap<String, String> recordMap = new HashMap<>();
@@ -478,13 +488,14 @@ public class TestKafkaOutputPlugin {
   @Test
   public void testColumnForDeletionAvro() throws IOException {
     ConfigSource configSource = embulk.loadYamlResource("config_with_column_for_deletion_avro.yml");
+    configSource.set("topic", avroSimpleTopic);
     setBootstrapServer(configSource);
     embulk.runOutput(
         configSource,
         Paths.get(Resources.getResource("org/embulk/test/in_with_deletion.csv").getPath()));
     List<ConsumerRecord<String, String>> consumerRecords =
         consumeAllRecordsFromTopic(
-            "avro-simple-topic", StringDeserializer.class, StringDeserializer.class);
+            avroSimpleTopic, StringDeserializer.class, StringDeserializer.class);
 
     assertEquals(3, consumerRecords.size());
     HashMap<String, String> recordMap = new HashMap<>();

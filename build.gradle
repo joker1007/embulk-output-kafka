@@ -1,5 +1,17 @@
 import groovy.xml.XmlUtil
 import groovy.xml.XmlParser
+import org.apache.kafka.clients.admin.AdminClient
+import org.apache.kafka.clients.admin.AdminClientConfig
+import org.apache.kafka.clients.admin.NewTopic
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.apache.kafka:kafka-clients:3.6.2")
+    }
+}
 
 plugins {
     id "org.embulk.embulk-plugins" version "0.7.0"
@@ -108,6 +120,17 @@ task generateEmbulkProperties {
         mkdir ".embulk"
         def f = file(".embulk/embulk.properties")
         f.write("m2_repo=${System.properties["user.home"]}/.m2/repository\nplugins.output.kafka=maven:${project.group}:kafka:${project.version}")
+    }
+}
+
+task createTestTopic {
+    doLast {
+        var props = new Properties()
+        props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        props.put(AdminClientConfig.CLIENT_ID_CONFIG, "embulk-output-kafka-test")
+        var admin = AdminClient.create(props)
+        admin.createTopics(Collections.singletonList(new NewTopic("json-topic", 8, (short) 1))).all().get()
+        admin.close()
     }
 }
 

@@ -1,0 +1,66 @@
+name: Java CI
+
+on: [push, pull_request]
+
+env:
+  SKIP_SIGNING: true
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '11'
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+    - name: Setup Maven Action
+      uses: s4u/setup-maven-action@v1.12.0
+    - name: Download Embulk
+      run: curl -o /tmp/embulk.jar -L https://dl.embulk.org/embulk-0.11.3.jar
+    - name: Build with Gradle
+      run: ./gradlew publishToMavenLocal
+    - name: Copy pom.xml
+      run: cp build/publications/maven/pom-default.xml pom.xml
+    - name: Resolve Maven Dependencies
+      run: mvn dependency:resolve
+    - name: Generate Embulk Properties
+      run: ./gradlew generateEmbulkProperties
+    - name: Setup Kafka
+      run: ./gradlew createTestTopic
+    - name: Run Embulk
+      run: java -jar /tmp/embulk.jar run config_acceptance.yml
+      working-directory: src/test/resources/org/embulk/test/
+
+    services:
+      kafka:
+        image: apache/kafka:3.7.0
+        ports:
+          - 9092:9092
+        options: --health-cmd "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list" --health-interval 10s --health-retries 10
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '11'
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+    - name: Set jvmargs
+      run: echo "org.gradle.jvmargs=-Xmx2048m" >> gradle.properties
+    - name: Build with Gradle
+      run: ./gradlew test
+    - name: Publish Test Report
+      uses: mikepenz/action-junit-report@v4
+      if: success() || failure() # always run even if the previous step fails
+      with:
+        report_paths: '**/build/test-results/test/TEST-*.xml'
