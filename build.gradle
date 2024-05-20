@@ -56,7 +56,7 @@ dependencies {
     testImplementation "org.embulk:embulk-core:0.11.3"
     testImplementation "org.embulk:embulk-junit4:0.11.3"
     testImplementation "org.embulk:embulk-input-file:0.11.0"
-    testImplementation "org.embulk:embulk-parser-csv:0.11.3"
+    testImplementation "org.embulk:embulk-parser-csv:0.11.6"
     testImplementation "org.embulk:embulk-deps:0.11.3"
 
     implementation("org.embulk:embulk-util-config:0.5.0")
